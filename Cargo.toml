@@ -1,0 +1,7 @@
+[package]
+name = "speartacus"
+version = "0.1.0"
+authors = ["Zakor Gyula <gyula.zakor@h-lab.eu>"]
+edition = "2018"
+
+[dependencies]
