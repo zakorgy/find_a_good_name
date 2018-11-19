@@ -2,7 +2,12 @@ extern crate piston;
 
 mod game;
 
+const WIDTH: u32 = 300;
+const HEIGHT: u32 = WIDTH / 16 * 9;
+const SCALE: u32 = 3;
+
 fn main() {
-    let mut game = game::Game::new(300, 300, 3);
+    let mut game = game::Game::new(WIDTH, HEIGHT, SCALE);
+    game.start();
     game.run();
 }
