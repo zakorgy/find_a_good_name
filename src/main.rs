@@ -1,5 +1,6 @@
 extern crate piston;
 
+mod graphics;
 mod game;
 
 const WIDTH: u32 = 300;

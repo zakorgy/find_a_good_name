@@ -1,8 +1,10 @@
 extern crate piston_window;
 
+use super::graphics::screen::Screen;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
-use piston_window::{clear, rectangle};
+use piston_window::{clear, image as draw_image};
+use piston_window::{G2dTexture, Texture, TextureSettings, Transformed};
 
 pub struct Game {
     pub width: u32,
@@ -10,18 +12,28 @@ pub struct Game {
     pub scale: u32,
     pub running: bool,
     window: PistonWindow,
+    screen: Screen,
+    texture: G2dTexture,
 }
 
 impl Game {
     pub fn new(width: u32, height: u32, scale: u32) -> Game {
         use piston_window::OpenGL;
 
-        let window: PistonWindow =
+        let mut window: PistonWindow =
             WindowSettings::new("Speartacus", (width * scale, height * scale))
                 .exit_on_esc(true)
                 .opengl(OpenGL::V3_2)
                 .build()
                 .unwrap();
+
+        let screen = Screen::new(width, height);
+
+        let texture: G2dTexture = Texture::from_image(
+            &mut window.factory,
+            &screen.canvas,
+            &TextureSettings::new()
+        ).unwrap();
 
         Game {
             width,
@@ -29,6 +41,8 @@ impl Game {
             scale,
             running: false,
             window,
+            screen,
+            texture
         }
     }
 
@@ -75,15 +89,18 @@ impl Game {
         self.running = false;
     }
 
-    pub fn update(&mut self) {}
+    pub fn update(&mut self) {
+    }
 
-    pub fn render<E: GenericEvent>(&mut self, event: &E) where
+    pub fn render<E: GenericEvent>(&mut self, event: &E)
     {
+        self.screen.render();
+        self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
+        let ref texture = self.texture;
+        let scale = self.scale as f64;
         self.window.draw_2d::<E,_, _>(&event, |c, g| {
-            clear([0.0, 0.0, 0.0, 1.0], g);
-            rectangle([0.0, 1.0, 0.0, 1.0], // red
-                      [0.0, 0.0, 100.0, 100.0], // rectangle
-                      c.transform, g);
+                clear([1.0; 4], g);
+                draw_image(texture, c.scale(scale, scale).transform, g);
         });
     }
 }
