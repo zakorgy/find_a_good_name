@@ -3,7 +3,7 @@ extern crate piston;
 mod graphics;
 mod game;
 
-const WIDTH: u32 = 300;
+const WIDTH: u32 = 600;
 const HEIGHT: u32 = WIDTH / 16 * 9;
 const SCALE: u32 = 3;
 
