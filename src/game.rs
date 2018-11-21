@@ -1,4 +1,5 @@
 use super::graphics::screen::Screen;
+use super::input::keyboard::KeyBoard;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
@@ -9,6 +10,7 @@ pub struct Game {
     pub height: u32,
     pub scale: u32,
     pub running: bool,
+    keyboard: KeyBoard,
     window: PistonWindow,
     screen: Screen,
     texture: G2dTexture,
@@ -38,6 +40,7 @@ impl Game {
             height,
             scale,
             running: false,
+            keyboard: KeyBoard::new(),
             window,
             screen,
             texture
@@ -88,12 +91,7 @@ impl Game {
     }
 
     pub fn update<E: GenericEvent>(&mut self, event: &E) {
-        if let Some(button) = event.press_args() {
-            println!("press {:?}", button);
-        };
-        if let Some(button) = event.release_args() {
-            println!("release {:?}", button);
-        };
+        self.keyboard.update(event);
     }
 
     pub fn render<E: GenericEvent>(&mut self, event: &E)
