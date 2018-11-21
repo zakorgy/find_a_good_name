@@ -17,10 +17,16 @@ impl Screen {
     }
 
     pub fn render(&mut self) {
-        for y in 0..self.height {
-            for x in 0..self.width {
-                self.canvas.put_pixel(x, y, image::Rgba([255, 0, 255, 255]));
+        for h in 0..self.height {
+            for w in 0..self.width {
+                self.canvas.put_pixel(w, h, image::Rgba([255, 0, 255, 255]));
             }
         }
+    }
+
+    pub fn clear(&mut self) {
+        for pixel in self.canvas.pixels_mut() {
+            *pixel = image::Rgba([0, 0, 0, 255]);
+        };
     }
 }

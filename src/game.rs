@@ -94,6 +94,7 @@ impl Game {
 
     pub fn render<E: GenericEvent>(&mut self, event: &E)
     {
+        self.screen.clear();
         self.screen.render();
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
