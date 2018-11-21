@@ -1,5 +1,3 @@
-extern crate piston_window;
-
 use super::graphics::screen::Screen;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
@@ -66,7 +64,7 @@ impl Game {
                 delta += last_time.elapsed().subsec_nanos() as f64 / ns;
                 last_time = Instant::now();
                 while delta >= 1.0 {
-                    self.update();
+                    self.update(&e);
                     updates += 1;
                     delta -= 1.0;
                 }
@@ -89,7 +87,13 @@ impl Game {
         self.running = false;
     }
 
-    pub fn update(&mut self) {
+    pub fn update<E: GenericEvent>(&mut self, event: &E) {
+        if let Some(button) = event.press_args() {
+            println!("press {:?}", button);
+        };
+        if let Some(button) = event.release_args() {
+            println!("release {:?}", button);
+        };
     }
 
     pub fn render<E: GenericEvent>(&mut self, event: &E)
