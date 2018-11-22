@@ -1,5 +1,5 @@
 use super::graphics::screen::Screen;
-use super::graphics::sprite_sheet::SpriteSheet;
+use super::graphics::sprite::{Sprite, SpriteSheet};
 use super::input::keyboard::KeyBoard;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
