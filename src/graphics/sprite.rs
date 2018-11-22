@@ -18,7 +18,7 @@ impl SpriteSheet {
     }
 }
 
-pub struct Sprite {
+/*pub struct Sprite {
     size: u32,
     x: u32,
     y: u32,
@@ -35,5 +35,25 @@ impl Sprite {
                         .view((x - 1) * size, (y - 1) * size, size, size)
                         .to_image(),
         }
+    }
+}*/
+
+pub struct SpriteView {
+    pub size: u32,
+    x: u32,
+    y: u32,
+}
+
+impl SpriteView {
+    pub fn new(size: u32, x: u32, y: u32) -> SpriteView {
+        SpriteView {
+            size,
+            x,
+            y
+        }
+    }
+
+    pub fn view<'a>(&self, sheet: &'a SpriteSheet) -> SubImage<&'a RgbaImage> {
+        sheet.image.view(self.x * self.size, self.y * self.size, self.size, self.size)
     }
 }

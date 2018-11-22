@@ -1,5 +1,5 @@
 use super::graphics::screen::Screen;
-use super::graphics::sprite::{Sprite, SpriteSheet};
+use super::graphics::sprite::{SpriteView, SpriteSheet};
 use super::input::keyboard::KeyBoard;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
@@ -106,7 +106,8 @@ impl Game {
     pub fn render<E: GenericEvent>(&mut self, event: &E)
     {
         self.screen.clear();
-        self.screen.render();
+        let sprite = SpriteView::new(8, 7, 6);
+        self.screen.render(&self.sheet, &sprite);
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;

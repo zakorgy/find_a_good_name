@@ -1,3 +1,5 @@
+use super::sprite::{SpriteSheet, SpriteView};
+
 pub struct Screen {
     width: u32,
     height: u32,
@@ -27,12 +29,14 @@ impl Screen {
         }
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, sheet: &SpriteSheet, sprite: &SpriteView) {
+        use image::GenericImageView;
+
+        let pixels = sprite.view(&sheet);
+        let mask = sprite.size - 1;
         for h in 0..self.height {
             for w in 0..self.width {
-                let index = ((w >> 4) + (h >> 4) * 64) as usize;
-                //println!("{}", index);
-                self.canvas.put_pixel(w, h, image::Rgba(*self.tiles.get(index).unwrap()));
+                self.canvas.put_pixel(w, h, pixels.get_pixel(w & mask, h & mask));
             }
         }
     }
