@@ -1,9 +1,11 @@
 use super::graphics::screen::Screen;
+use super::graphics::sprite_sheet::SpriteSheet;
 use super::input::keyboard::KeyBoard;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
 use piston_window::{G2dTexture, Texture, TextureSettings, Transformed};
+use std::path::PathBuf;
 
 pub struct Game {
     pub width: u32,
@@ -11,6 +13,7 @@ pub struct Game {
     pub scale: u32,
     pub running: bool,
     keyboard: KeyBoard,
+    sheet: SpriteSheet,
     window: PistonWindow,
     screen: Screen,
     texture: G2dTexture,
@@ -35,12 +38,18 @@ impl Game {
             &TextureSettings::new()
         ).unwrap();
 
+        let path = PathBuf::from(
+            env!("CARGO_MANIFEST_DIR")).join("res/sprites/tileset.png");
+        let sheet = SpriteSheet::new(
+            path.to_str().unwrap().to_owned(), 60, 120);
+
         Game {
             width,
             height,
             scale,
             running: false,
             keyboard: KeyBoard::new(),
+            sheet,
             window,
             screen,
             texture

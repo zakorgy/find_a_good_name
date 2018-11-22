@@ -1,7 +1,7 @@
 pub struct Screen {
     width: u32,
     height: u32,
-    pub canvas: image::ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+    pub canvas: image::RgbaImage,
     tiles: Vec<[u8; 4]>,
 }
 
@@ -9,7 +9,7 @@ impl Screen {
     pub fn new(width: u32, height: u32) -> Screen {
         use rand::Rng;
 
-        let canvas = image::ImageBuffer::new(width, height);
+        let canvas = image::RgbaImage::new(width, height);
         let mut tiles = Vec::with_capacity(64 * 64);
         for _ in 0..(64 * 64) {
             tiles.push([
