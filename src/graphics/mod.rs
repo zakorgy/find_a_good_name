@@ -1,6 +1,6 @@
 extern crate image;
-extern crate rand;
 extern crate piston_window;
+extern crate rand;
 
 pub mod screen;
 pub mod sprite;

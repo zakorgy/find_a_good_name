@@ -1,4 +1,4 @@
-use super::sprite::{SpriteSheet, SpriteView};
+use rand::Rng;
 
 pub struct Screen {
     width: u32,
@@ -9,8 +9,6 @@ pub struct Screen {
 
 impl Screen {
     pub fn new(width: u32, height: u32) -> Screen {
-        use rand::Rng;
-
         let canvas = image::RgbaImage::new(width, height);
         let mut tiles = Vec::with_capacity(64 * 64);
         for _ in 0..(64 * 64) {
@@ -29,14 +27,14 @@ impl Screen {
         }
     }
 
-    pub fn render(&mut self, sheet: &SpriteSheet, sprite: &SpriteView) {
-        use image::GenericImageView;
+    pub fn render(&mut self) {
+        use image::{GenericImage, GenericImageView};
+        use super::sprite::GROUNDS;
 
-        let pixels = sprite.view(&sheet);
-        let mask = sprite.size - 1;
-        for h in 0..self.height {
-            for w in 0..self.width {
-                self.canvas.put_pixel(w, h, pixels.get_pixel(w & mask, h & mask));
+        for h in (0..=self.height).step_by(8) {
+            let pixels = GROUNDS[0].view();
+            for w in (0..=self.width).step_by(8) {
+                self.canvas.copy_from(&pixels, w, h);
             }
         }
     }
