@@ -4,7 +4,7 @@ use super::input::keyboard::KeyBoard;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
-use piston_window::{G2dTexture, Texture, TextureSettings, Transformed};
+use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
 use std::path::PathBuf;
 
 pub struct Game {
@@ -35,7 +35,7 @@ impl Game {
         let texture: G2dTexture = Texture::from_image(
             &mut window.factory,
             &screen.canvas,
-            &TextureSettings::new()
+            &TextureSettings::new().mag(Filter::Nearest),
         ).unwrap();
 
         let path = PathBuf::from(
