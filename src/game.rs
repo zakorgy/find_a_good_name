@@ -6,10 +6,12 @@ use piston_window::{clear, image as draw_image};
 use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
 
 pub struct Game {
-    pub width: u32,
-    pub height: u32,
-    pub scale: u32,
-    pub running: bool,
+    width: u32,
+    height: u32,
+    x_offset: i32,
+    y_offset: i32,
+    scale: u32,
+    running: bool,
     keyboard: KeyBoard,
     window: PistonWindow,
     screen: Screen,
@@ -38,6 +40,8 @@ impl Game {
         Game {
             width,
             height,
+            x_offset: 0,
+            y_offset: 0,
             scale,
             running: false,
             keyboard: KeyBoard::new(),
@@ -64,12 +68,13 @@ impl Game {
         let mut updates= 0_u32;
         while let Some(e) = self.window.next() {
             if self.running {
+                self.keyboard.update(&e);
                 delta += last_time.elapsed().subsec_nanos() as f64 / ns;
                 last_time = Instant::now();
                 while delta >= 1.0 {
                     self.update(&e);
-                    updates += 1;
-                    delta -= 1.0;
+                   updates += 1;
+                   delta -= 1.0;
                 }
                 self.render(&e);
                 frames += 1;
@@ -90,14 +95,21 @@ impl Game {
         self.running = false;
     }
 
-    pub fn update<E: GenericEvent>(&mut self, event: &E) {
-        self.keyboard.update(event);
+    fn update<E: GenericEvent>(&mut self, event: &E) {
+        self.update_offsets();
     }
 
-    pub fn render<E: GenericEvent>(&mut self, event: &E)
+    fn update_offsets(&mut self) {
+        if self.keyboard.up { self.y_offset -= 1 };
+        if self.keyboard.down { self.y_offset += 1 };
+        if self.keyboard.left { self.x_offset -= 1 };
+        if self.keyboard.right { self.x_offset += 1 };
+    }
+
+    fn render<E: GenericEvent>(&mut self, event: &E)
     {
         self.screen.clear();
-        self.screen.render();
+        self.screen.render(self.x_offset, self.y_offset);
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;

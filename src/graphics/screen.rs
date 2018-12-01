@@ -27,14 +27,24 @@ impl Screen {
         }
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, x_offset: i32, y_offset: i32) {
         use image::{GenericImage, GenericImageView};
         use super::sprite::GROUNDS;
+        let pixels = GROUNDS[0].view();
+        let mask = GROUNDS[0].size - 1;
 
-        for h in (0..=self.height).step_by(8) {
-            let pixels = GROUNDS[0].view();
-            for w in (0..=self.width).step_by(8) {
-                self.canvas.copy_from(&pixels, w, h);
+        for h in 0..self.height {
+            let hp = h as i32 + (y_offset / 2 );
+            if hp < 0 || hp >= self.height as i32 {
+                continue;
+            }
+            for w in 0..self.width {
+                let wp = w as i32 + (x_offset / 2);
+                if wp < 0 || wp >= self.width as i32 {
+                    continue;
+                }
+
+                self.canvas.put_pixel(wp as _, hp as _, pixels.get_pixel(w & mask, h & mask));
             }
         }
     }

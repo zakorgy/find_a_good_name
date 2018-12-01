@@ -31,7 +31,7 @@ impl SpriteSheet {
 }
 
 pub struct Sprite {
-    size: u32,
+    pub size: u32,
     x: u32,
     y: u32,
     sheet: &'static SpriteSheet,
