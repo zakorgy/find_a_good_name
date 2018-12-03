@@ -1,6 +1,6 @@
-use image::{GenericImage, GenericImageView};
+use image::GenericImageView;
 use rand::Rng;
-use super::super::level::tile::Tile;
+use super::super::level::Tile;
 
 pub struct Screen {
     pub width: u32,
@@ -8,7 +8,6 @@ pub struct Screen {
     x_offset: i32,
     y_offset: i32,
     pub canvas: image::RgbaImage,
-    tiles: Vec<[u8; 4]>,
 }
 
 impl Screen {
@@ -29,30 +28,8 @@ impl Screen {
             x_offset: 0,
             y_offset: 0,
             canvas,
-            tiles,
         }
     }
-
-    /*pub fn render(&mut self, x_offset: i32, y_offset: i32) {
-        use super::sprite::GROUNDS;
-        let pixels = GROUNDS[0].view();
-        let mask = GROUNDS[0].size - 1;
-
-        for h in 0..self.height {
-            let hp = h as i32 + (y_offset / 2 );
-            if hp < 0 || hp >= self.height as i32 {
-                continue;
-            }
-            for w in 0..self.width {
-                let wp = w as i32 + (x_offset / 2);
-                if wp < 0 || wp >= self.width as i32 {
-                    continue;
-                }
-
-                self.canvas.put_pixel(wp as _, hp as _, pixels.get_pixel(w & mask, h & mask));
-            }
-        }
-    }*/
 
     pub fn render_tile(&mut self, mut xp: i32, mut yp: i32, tile: &Tile) {
         xp -= self.x_offset;

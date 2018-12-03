@@ -1,2 +1,5 @@
-pub mod level;
-pub mod tile;
+mod level;
+mod tile;
+
+pub use self::level::*;
+pub use self::tile::*;

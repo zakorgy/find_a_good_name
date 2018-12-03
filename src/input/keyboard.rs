@@ -42,4 +42,8 @@ impl KeyBoard {
         self.right = self.keys.contains(&Key::Right) ||
             self.keys.contains(&Key::D);
     }
+
+    pub fn contains_key(&self, key: &Key) -> bool {
+        self.keys.contains(&key)
+    }
 }

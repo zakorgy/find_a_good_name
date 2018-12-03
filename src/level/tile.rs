@@ -1,6 +1,4 @@
-use super::super::graphics::screen::Screen;
-use super::super::graphics::sprite::Sprite;
-use super::super::graphics::sprite::{GROUNDS, VOID};
+use super::super::graphics::{Screen, Sprite, GROUNDS, VOID};
 
 lazy_static! {
     pub static ref GROUND_TILE0: Tile = Tile::new(GROUNDS[0]);
@@ -9,15 +7,20 @@ lazy_static! {
 }
 
 pub struct Tile {
-    x: u32,
-    y: u32,
+    //x: u32,
+    //y: u32,
     pub solid: bool,
     pub sprite: &'static Sprite,
 }
 
 impl Tile {
     fn new(sprite: &'static Sprite) -> Tile {
-        Tile {x: 0, y: 0, solid: false, sprite}
+
+        Tile {
+            //x: 0, y: 0,
+            solid: false,
+            sprite
+        }
     }
 
     pub fn render(&self, x: i32, y: i32, screen: &mut Screen) {

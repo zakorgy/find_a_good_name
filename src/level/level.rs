@@ -1,7 +1,7 @@
 use rand::Rng;
 use std::convert::From;
 use std::path::PathBuf;
-use super::super::graphics::screen::Screen;
+use super::super::graphics::Screen;
 
 pub struct Level {
     pub width : i32,
@@ -40,7 +40,7 @@ impl Level {
         level
     }
 
-    pub fn load_level(path: PathBuf) -> Level {
+    pub fn load_level(_path: PathBuf) -> Level {
         unimplemented!()
     }
 
@@ -52,9 +52,7 @@ impl Level {
         }
     }
 
-    pub fn update(&mut self) {
-
-    }
+    pub fn update(&mut self) {}
 
     pub fn render(&self, x_scroll: i32, y_scroll: i32, screen: &mut Screen) {
         screen.set_offset(x_scroll, y_scroll);

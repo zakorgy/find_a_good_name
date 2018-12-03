@@ -1,14 +1,16 @@
-use super::graphics::screen::Screen;
-use super::input::keyboard::KeyBoard;
-use super::level::level::Level;
+use super::graphics::Screen;
+use super::input::{Key, KeyBoard};
+use super::level::Level;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
 use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
 
+static EXIT_KEY: &'static Key = &Key::Escape;
+
 pub struct Game {
-    width: u32,
-    height: u32,
+    //width: u32,
+    //height: u32,
     x_offset: i32,
     y_offset: i32,
     scale: u32,
@@ -40,8 +42,8 @@ impl Game {
         ).unwrap();
 
         Game {
-            width,
-            height,
+            //width,
+            //height,
             x_offset: 0,
             y_offset: 0,
             scale,
@@ -98,8 +100,12 @@ impl Game {
         self.running = false;
     }
 
-    fn update<E: GenericEvent>(&mut self, event: &E) {
+    fn update<E: GenericEvent>(&mut self, _event: &E) {
+        if self.keyboard.contains_key(&EXIT_KEY) {
+            self.stop();
+        }
         self.update_offsets();
+        self.level.update();
     }
 
     fn update_offsets(&mut self) {

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 lazy_static! {
     pub static ref SHEET: SpriteSheet = {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/tileset.png");
-        SpriteSheet::new(path.to_str().unwrap().to_owned(), 60, 120)
+        SpriteSheet::new(path.to_str().unwrap().to_owned())
     };
 
     static ref GROUND1: Sprite = Sprite::new(8, 0, 11, &SHEET);
@@ -14,20 +14,25 @@ lazy_static! {
 }
 
 pub struct SpriteSheet {
-    path: String,
-    width: u32,
-    height: u32,
+    //path: String,
+    //width: u32,
+    //height: u32,
     image: RgbaImage,
 }
 
 impl SpriteSheet {
-    pub fn new(path: String, width: u32, height: u32) -> SpriteSheet {
+    pub fn new(path: String) -> SpriteSheet {
         let image = match image::open(&path) {
             Ok(image) => image.to_rgba(),
             Err(err) => panic!("Error loading image: {:?}", err),
         };
 
-        SpriteSheet {path, width, height, image}
+        //let (width, height) = (image.width(), image.height());
+
+        SpriteSheet {
+            //path, width, height,
+            image
+        }
     }
 }
 

@@ -1,3 +1,6 @@
 extern crate piston;
 
-pub mod keyboard;
+mod keyboard;
+
+pub use self::keyboard::KeyBoard;
+pub use piston::input::Key;
