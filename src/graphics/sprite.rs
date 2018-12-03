@@ -7,8 +7,9 @@ lazy_static! {
         SpriteSheet::new(path.to_str().unwrap().to_owned(), 60, 120)
     };
 
-    static ref GROUND1: Sprite = Sprite::new(8, 7, 6, &SHEET);
-    static ref GROUND2: Sprite = Sprite::new(8, 7, 5, &SHEET);
+    static ref GROUND1: Sprite = Sprite::new(8, 0, 11, &SHEET);
+    static ref GROUND2: Sprite = Sprite::new(8, 1, 11, &SHEET);
+    pub static ref VOID: Sprite = Sprite::new(8, 0, 0, &SHEET);
     pub static ref GROUNDS: Vec<&'static Sprite> = vec![&GROUND1, &GROUND2];
 }
 
@@ -51,23 +52,3 @@ impl Sprite {
         self.sheet.image.view(self.x * self.size, self.y * self.size, self.size, self.size)
     }
 }
-
-/*pub struct SpriteView {
-    pub size: u32,
-    x: u32,
-    y: u32,
-}
-
-impl SpriteView {
-    pub fn new(size: u32, x: u32, y: u32) -> SpriteView {
-        SpriteView {
-            size,
-            x,
-            y
-        }
-    }
-
-    pub fn view<'a>(&self) -> SubImage<&'a RgbaImage> {
-        SHEET.image.view(self.x * self.size, self.y * self.size, self.size, self.size)
-    }
-}*/

@@ -1,5 +1,6 @@
 use super::graphics::screen::Screen;
 use super::input::keyboard::KeyBoard;
+use super::level::level::Level;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
@@ -16,6 +17,7 @@ pub struct Game {
     window: PistonWindow,
     screen: Screen,
     texture: G2dTexture,
+    level: Level,
 }
 
 impl Game {
@@ -47,7 +49,8 @@ impl Game {
             keyboard: KeyBoard::new(),
             window,
             screen,
-            texture
+            texture,
+            level: Level::new(64, 64),
         }
     }
 
@@ -109,7 +112,7 @@ impl Game {
     fn render<E: GenericEvent>(&mut self, event: &E)
     {
         self.screen.clear();
-        self.screen.render(self.x_offset, self.y_offset);
+        self.level.render(self.x_offset, self.y_offset, &mut self.screen);
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;

@@ -3,9 +3,10 @@ extern crate lazy_static;
 extern crate piston;
 extern crate piston_window;
 
-mod graphics;
+pub mod graphics;
 mod game;
 mod input;
+pub mod level;
 
 const WIDTH: u32 = 128;
 const HEIGHT: u32 = WIDTH / 16 * 9;
