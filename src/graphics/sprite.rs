@@ -10,7 +10,30 @@ lazy_static! {
     static ref GROUND1: Sprite = Sprite::new(8, 0, 11, &SHEET);
     static ref GROUND2: Sprite = Sprite::new(8, 1, 11, &SHEET);
     pub static ref VOID: Sprite = Sprite::new(8, 0, 0, &SHEET);
+    pub static ref PLAYER: Sprite = Sprite::new(8, 0, 8, &SHEET);
     pub static ref GROUNDS: Vec<&'static Sprite> = vec![&GROUND1, &GROUND2];
+    static ref WALL_TOP0: Sprite = Sprite::new(8, 1, 0, &SHEET);
+    static ref WALL_TOP1: Sprite = Sprite::new(8, 2, 0, &SHEET);
+    static ref WALL_TOP2: Sprite = Sprite::new(8, 3, 0, &SHEET);
+    pub static ref WALL_TOPS: Vec<&'static Sprite> = vec![
+        &WALL_TOP0,
+        &WALL_TOP1,
+        &WALL_TOP2,
+    ];
+    static ref WALL0: Sprite = Sprite::new(8, 4, 1, &SHEET);
+    static ref WALL1: Sprite = Sprite::new(8, 5, 1, &SHEET);
+    static ref WALL2: Sprite = Sprite::new(8, 6, 1, &SHEET);
+    pub static ref WALLS: Vec<&'static Sprite> = vec![
+        &WALL0,
+        &WALL1,
+        &WALL2,
+    ];
+    static ref GRASS0: Sprite = Sprite::new(8, 2, 2, &SHEET);
+    static ref GRASS1: Sprite = Sprite::new(8, 6, 2, &SHEET);
+    pub static ref GRASSES: Vec<&'static Sprite> = vec![
+        &GRASS0,
+        &GRASS1,
+    ];
 }
 
 pub struct SpriteSheet {

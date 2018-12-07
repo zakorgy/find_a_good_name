@@ -1,9 +1,40 @@
-use super::super::graphics::{Screen, Sprite, GROUNDS, VOID};
+use super::super::graphics::{Screen, Sprite, GRASSES, GROUNDS, VOID, WALLS, WALL_TOPS};
 
 lazy_static! {
-    pub static ref GROUND_TILE0: Tile = Tile::new(GROUNDS[0]);
-    pub static ref GROUND_TILE1: Tile = Tile::new(GROUNDS[1]);
-    pub static ref VOID_TILE: Tile = Tile::new(&VOID);
+    static ref GROUND_TILE0: Tile = Tile::new(GROUNDS[0], false);
+    static ref GROUND_TILE1: Tile = Tile::new(GROUNDS[1], false);
+    static ref WALL_TOP_TILE0: Tile = Tile::new(WALL_TOPS[0], true);
+    static ref WALL_TOP_TILE1: Tile = Tile::new(WALL_TOPS[1], true);
+    static ref WALL_TOP_TILE2: Tile = Tile::new(WALL_TOPS[2], true);
+    static ref WALL_TILE0: Tile = Tile::new(WALLS[0], false);
+    static ref WALL_TILE1: Tile = Tile::new(WALLS[1], false);
+    static ref WALL_TILE2: Tile = Tile::new(WALLS[2], false);
+    static ref GRASS_TILE0: Tile = Tile::new(GRASSES[0], false);
+    static ref GRASS_TILE1: Tile = Tile::new(GRASSES[1], false);
+
+    pub static ref VOID_TILE: Tile = Tile::new(&VOID, true);
+
+    pub static ref WALL_TOP_TILES: Vec<&'static Tile> = vec![
+        &WALL_TOP_TILE0,
+        &WALL_TOP_TILE1,
+        &WALL_TOP_TILE2,
+    ];
+
+    pub static ref WALL_TILES: Vec<&'static Tile> = vec![
+        &WALL_TILE0,
+        &WALL_TILE1,
+        &WALL_TILE2,
+    ];
+
+    pub static ref GRASS_TILES: Vec<&'static Tile> = vec![
+        &GRASS_TILE0,
+        &GRASS_TILE1,
+    ];
+
+    pub static ref GROUND_TILES: Vec<&'static Tile> = vec![
+        &GROUND_TILE0,
+        &GROUND_TILE1,
+    ];
 }
 
 pub struct Tile {
@@ -14,11 +45,11 @@ pub struct Tile {
 }
 
 impl Tile {
-    fn new(sprite: &'static Sprite) -> Tile {
+    fn new(sprite: &'static Sprite, solid: bool) -> Tile {
 
         Tile {
             //x: 0, y: 0,
-            solid: false,
+            solid,
             sprite
         }
     }

@@ -3,14 +3,15 @@ extern crate lazy_static;
 extern crate piston;
 extern crate piston_window;
 
+mod entity;
 mod graphics;
 mod game;
 mod input;
 mod level;
 
-const WIDTH: u32 = 128;
+const WIDTH: u32 = 256;
 const HEIGHT: u32 = WIDTH / 16 * 9;
-const SCALE: u32 = 8;
+const SCALE: u32 = 4;
 
 fn main() {
     let mut game = game::Game::new(WIDTH, HEIGHT, SCALE);

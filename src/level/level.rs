@@ -2,17 +2,20 @@ use rand::Rng;
 use std::convert::From;
 use std::path::PathBuf;
 use super::super::graphics::Screen;
+use super::super::graphics::image;
 
 pub struct Level {
     pub width : i32,
     pub height: i32,
-    tiles: Vec<Tiles>,
+    pub tiles: Vec<Tiles>,
 }
 
 pub enum Tiles {
     Empty,
+    Grass(usize),
     Ground,
-    Wall,
+    Wall(usize),
+    WallTop(usize),
     Door,
 }
 
@@ -20,8 +23,10 @@ impl From<u32> for Tiles {
     fn from(num: u32) -> Tiles {
         match num {
             1 => Tiles::Ground,
-            2 => Tiles::Wall,
-            3 => Tiles::Door,
+            2 => Tiles::Grass(0),
+            3 => Tiles::Wall(0),
+            4 => Tiles::WallTop(0),
+            5 => Tiles::Door,
             _ => Tiles::Empty,
         }
     }
@@ -40,8 +45,29 @@ impl Level {
         level
     }
 
-    pub fn load_level(_path: PathBuf) -> Level {
-        unimplemented!()
+    pub fn load_level(path: &PathBuf) -> Level {
+        let image = match image::open(&path) {
+            Ok(image) => image.to_rgba(),
+            Err(err) => panic!("Error loading image: {:?}", err),
+        };
+        let (width, height) = image.dimensions();
+        let mut tiles = Vec::new();
+        for y in 0..height {
+            for x in 0..width {
+                match image.get_pixel(x, y) {
+                    image::Rgba{ data: [255, 0, 0, 255]} => tiles.push(Tiles::Wall(rand::thread_rng().gen_range(0_usize, 3))),
+                    image::Rgba{ data: [0, 255, 255, 255]} => tiles.push(Tiles::WallTop(rand::thread_rng().gen_range(0_usize, 3))),
+                    image::Rgba{ data: [0, 255, 0, 255]} => tiles.push(Tiles::Grass(rand::thread_rng().gen_range(0_usize, 2))),
+                    _ => tiles.push(Tiles::Empty),
+                }
+            }
+        }
+
+        Level {
+            width: width as _,
+            height: height as _,
+            tiles,
+        }
     }
 
     fn generate_level(&mut self) {
@@ -68,13 +94,16 @@ impl Level {
         }
     }
 
-    fn get_tile(&self, x: i32, y: i32) -> &'static super::tile::Tile {
+    pub fn get_tile(&self, x: i32, y: i32) -> &'static super::tile::Tile {
         if x < 0 || x >= self.width || y < 0 || y >= self.height {
             return &super::tile::VOID_TILE;
         }
         match self.tiles.get((x + y * self.width) as usize).expect("Out of bounds") {
-            Tiles::Ground | Tiles::Wall => &super::tile::GROUND_TILE0,
-            _ => &super::tile::GROUND_TILE1,
+            Tiles::Ground => &super::tile::GROUND_TILES[0],
+            Tiles::Wall(i)  => &super::tile::WALL_TILES[*i],
+            Tiles::WallTop(i) => &super::tile::WALL_TOP_TILES[*i],
+            Tiles::Grass(i) => &super::tile::GRASS_TILES[*i],
+            _ => &super::tile::VOID_TILE,
         }
     }
 }

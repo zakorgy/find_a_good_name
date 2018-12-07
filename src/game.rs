@@ -1,25 +1,29 @@
-use super::graphics::Screen;
+use super::entity::{Direction, Entity, Mob, Player};
+use super::graphics::{Screen, PLAYER};
 use super::input::{Key, KeyBoard};
 use super::level::Level;
 use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
 use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
+use std::boxed::Box;
+use std::path::PathBuf;
 
 static EXIT_KEY: &'static Key = &Key::Escape;
 
 pub struct Game {
-    //width: u32,
-    //height: u32,
+    width: u32,
+    height: u32,
     x_offset: i32,
     y_offset: i32,
     scale: u32,
     running: bool,
-    keyboard: KeyBoard,
+    pub keyboard: KeyBoard,
     window: PistonWindow,
     screen: Screen,
     texture: G2dTexture,
     level: Level,
+    player: Box<dyn Mob>,
 }
 
 impl Game {
@@ -41,9 +45,12 @@ impl Game {
             &TextureSettings::new().mag(Filter::Nearest),
         ).unwrap();
 
+        let lvl_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/map.png");
+        let level = Level::load_level(&lvl_path);
+
         Game {
-            //width,
-            //height,
+            width,
+            height,
             x_offset: 0,
             y_offset: 0,
             scale,
@@ -52,7 +59,8 @@ impl Game {
             window,
             screen,
             texture,
-            level: Level::new(64, 64),
+            level,
+            player: Box::new(Player::new((width / 2) as f32, (height / 2) as f32, 0.5, &PLAYER))
         }
     }
 
@@ -100,25 +108,40 @@ impl Game {
         self.running = false;
     }
 
+    fn update_offsets(&mut self) {
+        if self.keyboard.up { self.y_offset -= 1; }
+        if self.keyboard.down { self.y_offset += 1; }
+        if self.keyboard.left { self.x_offset -= 1; }
+        if self.keyboard.right { self.x_offset += 1; }
+    }
+
     fn update<E: GenericEvent>(&mut self, _event: &E) {
         if self.keyboard.contains_key(&EXIT_KEY) {
             self.stop();
         }
-        self.update_offsets();
-        self.level.update();
-    }
+        //self.update_offsets();
 
-    fn update_offsets(&mut self) {
-        if self.keyboard.up { self.y_offset -= 1 };
-        if self.keyboard.down { self.y_offset += 1 };
-        if self.keyboard.left { self.x_offset -= 1 };
-        if self.keyboard.right { self.x_offset += 1 };
+        self.level.update();
+        /*println!("Player pos {:?}", self.player.get_pos());
+        let (x, y) = self.player.get_pos();
+        if self.screen.width as i32 / 4 * 3 - x < 5 || self.screen.width as i32 / 4 * 3 - x > -5 && self.player.direction() == Direction::Right
+            || self.screen.width as i32 / 4 - x < 5 || self.screen.width as i32 / 4 - x > -5 && self.player.direction() == Direction::Left
+            || self.screen.height as i32 / 5 * 4 - y < 5 || self.screen.height as i32 / 5 * 4 - y > -5  && self.player.direction() == Direction::Down
+            || self.screen.height as i32 / 5 - y < 5 || self.screen.height as i32 / 5 - y > -5 && self.player.direction() == Direction::Up
+        {
+            Mob::update(self.player.as_mut(), &self.keyboard, true);
+            self.update_offsets();
+        } else {*/
+            Mob::update(self.player.as_mut(), &self.keyboard, &self.level);
+        //}
+
     }
 
     fn render<E: GenericEvent>(&mut self, event: &E)
     {
         self.screen.clear();
         self.level.render(self.x_offset, self.y_offset, &mut self.screen);
+        self.player.render(&mut self.screen);
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;
