@@ -1,4 +1,4 @@
-use super::entity::{Direction, Entity, Mob, Player};
+use super::entity::{Mob, Player};
 use super::graphics::{Screen, PLAYER};
 use super::input::{Key, KeyBoard};
 use super::level::Level;
@@ -60,7 +60,7 @@ impl Game {
             screen,
             texture,
             level,
-            player: Box::new(Player::new((width / 2) as f32, (height / 2) as f32, 0.5, &PLAYER))
+            player: Box::new(Player::new(25.0, 25.0, 0.5, &PLAYER))
         }
     }
 
@@ -108,40 +108,48 @@ impl Game {
         self.running = false;
     }
 
-    fn update_offsets(&mut self) {
-        if self.keyboard.up { self.y_offset -= 1; }
-        if self.keyboard.down { self.y_offset += 1; }
-        if self.keyboard.left { self.x_offset -= 1; }
-        if self.keyboard.right { self.x_offset += 1; }
-    }
-
     fn update<E: GenericEvent>(&mut self, _event: &E) {
         if self.keyboard.contains_key(&EXIT_KEY) {
             self.stop();
         }
-        //self.update_offsets();
 
         self.level.update();
-        /*println!("Player pos {:?}", self.player.get_pos());
-        let (x, y) = self.player.get_pos();
-        if self.screen.width as i32 / 4 * 3 - x < 5 || self.screen.width as i32 / 4 * 3 - x > -5 && self.player.direction() == Direction::Right
-            || self.screen.width as i32 / 4 - x < 5 || self.screen.width as i32 / 4 - x > -5 && self.player.direction() == Direction::Left
-            || self.screen.height as i32 / 5 * 4 - y < 5 || self.screen.height as i32 / 5 * 4 - y > -5  && self.player.direction() == Direction::Down
-            || self.screen.height as i32 / 5 - y < 5 || self.screen.height as i32 / 5 - y > -5 && self.player.direction() == Direction::Up
-        {
-            Mob::update(self.player.as_mut(), &self.keyboard, true);
-            self.update_offsets();
-        } else {*/
-            Mob::update(self.player.as_mut(), &self.keyboard, &self.level);
-        //}
+        Mob::update(self.player.as_mut(), &self.keyboard, &self.level);
+        self.update_offsets();
+    }
 
+    fn update_offsets(&mut self) {
+        let (x, y) = self.player.absolute_pos();
+        let (lvl_width, lvl_height) = self.level.dimensions();
+
+        self.x_offset = {
+            let half_width = (self.width / 2) as i32;
+            if x < half_width {
+                0
+            } else if x > lvl_width - half_width {
+                lvl_width - self.width as i32
+            } else {
+                x - half_width
+            }
+        };
+
+        self.y_offset = {
+            let half_height = (self.height / 2) as i32;
+            if y < half_height {
+                0
+            } else if y > lvl_height - half_height {
+                lvl_height - self.height as i32
+            } else {
+                y - half_height
+            }
+        };
     }
 
     fn render<E: GenericEvent>(&mut self, event: &E)
     {
         self.screen.clear();
         self.level.render(self.x_offset, self.y_offset, &mut self.screen);
-        self.player.render(&mut self.screen);
+        self.player.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;

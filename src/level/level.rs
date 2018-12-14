@@ -34,17 +34,6 @@ impl From<u32> for Tiles {
 
 impl Level {
 
-    pub fn new(width: i32, height: i32) -> Level {
-        let mut level = Level {
-            width,
-            height,
-            tiles: Vec::new(),
-        };
-
-        level.generate_level();
-        level
-    }
-
     pub fn load_level(path: &PathBuf) -> Level {
         let image = match image::open(&path) {
             Ok(image) => image.to_rgba(),
@@ -67,14 +56,6 @@ impl Level {
             width: width as _,
             height: height as _,
             tiles,
-        }
-    }
-
-    fn generate_level(&mut self) {
-        for _ in 0..self.height {
-            for _ in 0..self.width {
-                self.tiles.push(rand::thread_rng().gen_range(0_u32, 4).into())
-            }
         }
     }
 
@@ -105,5 +86,9 @@ impl Level {
             Tiles::Grass(i) => &super::tile::GRASS_TILES[*i],
             _ => &super::tile::VOID_TILE,
         }
+    }
+
+    pub fn dimensions(&self) -> (i32, i32) {
+        (self.width * 8, self.height * 8)
     }
 }

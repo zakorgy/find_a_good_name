@@ -9,9 +9,9 @@ mod game;
 mod input;
 mod level;
 
-const WIDTH: u32 = 256;
+const WIDTH: u32 = 150;
 const HEIGHT: u32 = WIDTH / 16 * 9;
-const SCALE: u32 = 4;
+const SCALE: u32 = 6;
 
 fn main() {
     let mut game = game::Game::new(WIDTH, HEIGHT, SCALE);
