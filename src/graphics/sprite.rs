@@ -11,6 +11,9 @@ lazy_static! {
     static ref GROUND2: Sprite = Sprite::new(8, 1, 11, &SHEET);
     pub static ref VOID: Sprite = Sprite::new(8, 0, 0, &SHEET);
     pub static ref PLAYER: Sprite = Sprite::new(8, 0, 8, &SHEET);
+    static ref PLAYER0: Sprite = Sprite::new(8, 7, 7, &SHEET);
+    static ref PLAYER1: Sprite = Sprite::new(8, 0, 8, &SHEET);
+    pub static ref PLAYERS: Vec<&'static Sprite> = vec![&PLAYER0, &PLAYER1];
     pub static ref GROUNDS: Vec<&'static Sprite> = vec![&GROUND1, &GROUND2];
     static ref WALL_TOP0: Sprite = Sprite::new(8, 1, 0, &SHEET);
     static ref WALL_TOP1: Sprite = Sprite::new(8, 2, 0, &SHEET);
@@ -78,5 +81,47 @@ impl Sprite {
 
     pub fn view(&self) -> SubImage<&RgbaImage> {
         self.sheet.image.view(self.x * self.size, self.y * self.size, self.size, self.size)
+    }
+}
+
+pub struct AnimatedSprite {
+    sprites: Vec<&'static Sprite>,
+    timing: Vec<u8>,
+    current: usize,
+    timer: u8,
+}
+
+impl AnimatedSprite {
+    pub fn new(sprites: Vec<&'static Sprite>, timing: Vec<u8>) -> AnimatedSprite {
+        AnimatedSprite {
+            sprites,
+            timing,
+            current: 0,
+            timer: 0,
+        }
+    }
+
+    pub fn update(&mut self) {
+        self.timer += 1;
+        let current_timing = *self.timing.get(self.current).unwrap();
+        if self.timer > current_timing {
+            self.current += 1;
+            if self.timing.len() <= self.current {
+                self.reset();
+            }
+        }
+    }
+
+    pub fn view(&self) -> SubImage<&RgbaImage> {
+        self.sprites[self.current].view()
+    }
+
+    pub fn reset(&mut self) {
+        self.current = 0;
+        self.timer = 0;
+    }
+
+    pub fn size(&self) -> u32 {
+        self.sprites[0].size
     }
 }

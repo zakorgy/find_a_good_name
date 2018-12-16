@@ -1,4 +1,4 @@
-use super::super::graphics::{Screen, Sprite};
+use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Level;
 use super::super::graphics::image::{GenericImageView, Rgba};
@@ -23,12 +23,13 @@ pub struct Player {
     speed: f32,
     direction: Direction,
     removed: bool,
-    sprite: &'static Sprite,
+    sprite: AnimatedSprite,
     collides: bool,
+    flipped: bool,
 }
 
 
-#[derive(Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Direction {
     Up,
     Down,
@@ -37,7 +38,7 @@ pub enum Direction {
 }
 
 impl Player {
-    pub fn new(x: f32, y: f32, speed: f32, sprite: &'static Sprite) -> Player {
+    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite) -> Player {
         Player {
             x,
             y,
@@ -46,6 +47,7 @@ impl Player {
             removed: false,
             sprite,
             collides: false,
+            flipped: false,
         }
     }
 
@@ -79,15 +81,15 @@ impl Entity for Player {
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
         let pixels = self.sprite.view();
         let (ax, ay) = self.relative_pos(x_offset, y_offset);
-        for y in 0..self.sprite.size {
-            for x in 0..self.sprite.size {
+        for y in 0 .. self.sprite.size() {
+            for x in 0 .. self.sprite.size() {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
                 if xp < 0 || xp >= screen.width as i32
                     || yp < 0 ||yp >= screen.height as i32 {
                     continue;
                 }
-                let pixel = match pixels.get_pixel(x, y) {
+                let pixel = match pixels.get_pixel(if self.flipped { 7 - x } else { x }, y) {
                     Rgba {data: [255, 0, 255, 255]} => continue,
                     pixel => pixel,
                 };
@@ -114,10 +116,16 @@ impl Entity for Player {
 
 impl Mob for Player {
     fn move_entity(&mut self, x: f32, y: f32, level: &Level) {
+        if x < 0.0 {
+            self.direction = Direction::Left;
+            self.flipped = true;
+        }
+        if x > 0.0 {
+            self.direction = Direction::Right;
+            self.flipped = false;
+        }
         if y < 0.0 {self.direction = Direction::Up;}
         if y > 0.0 {self.direction = Direction::Down;}
-        if x < 0.0 {self.direction = Direction::Left;}
-        if x > 0.0 {self.direction = Direction::Right;}
         if self.collision(&level, x, y) {
             self.collides = true;
         } else {
@@ -133,12 +141,21 @@ impl Mob for Player {
         if keyboard.down { ya += self.speed; }
         if keyboard.left { xa -= self.speed }
         if keyboard.right { xa += self.speed }
+        let mut update_sprite = false;
         if xa != 0.0 {
             self.move_entity(xa, 0.0, level);
+            update_sprite = true;
         }
 
         if ya != 0.0 {
             self.move_entity(0.0, ya, level);
+            update_sprite = true;
+        }
+
+        if update_sprite {
+            self.sprite.update();
+        } else {
+            self.sprite.reset();
         }
     }
 }

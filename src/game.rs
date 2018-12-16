@@ -1,5 +1,5 @@
 use super::entity::{Mob, Player};
-use super::graphics::{Screen, PLAYER};
+use super::graphics::{AnimatedSprite, Screen, PLAYERS};
 use super::input::{Key, KeyBoard};
 use super::level::Level;
 use piston_window::{PistonWindow, WindowSettings};
@@ -60,7 +60,7 @@ impl Game {
             screen,
             texture,
             level,
-            player: Box::new(Player::new(25.0, 25.0, 0.5, &PLAYER))
+            player: Box::new(Player::new(25.0, 25.0, 0.7, AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10])))
         }
     }
 
