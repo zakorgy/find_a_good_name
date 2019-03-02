@@ -54,7 +54,7 @@ impl Player {
     fn collision(&self, level: &Level, x_offset: f32, y_offset: f32) -> bool {
         let x = (self.x + x_offset) as i32;
         let y = (self.y + y_offset) as i32;
-        let x0 = x + 1 >> 3;
+        let x0 = x /*+ 1*/ >> 3;
         let y0 = y >> 3;
         let x7 = (x + 7) >> 3;
         let y7 = (y + 7) >> 3;
@@ -89,11 +89,18 @@ impl Entity for Player {
                     || yp < 0 ||yp >= screen.height as i32 {
                     continue;
                 }
+                #[cfg(feature = "debug_rect")]
+                {
+                    if y == 0 || y == self.sprite.size() - 1 || x == 0 || x == self.sprite.size() - 1 {
+                        screen.canvas.put_pixel(xp as u32, yp as u32, Rgba {data: [255, 0, 255, 255]});
+                        continue;
+                    }
+                }
                 let pixel = match pixels.get_pixel(if self.flipped { 7 - x } else { x }, y) {
                     Rgba {data: [255, 0, 255, 255]} => continue,
                     pixel => pixel,
                 };
-                screen.canvas.put_pixel(xp as u32, yp as u32, pixel)
+                screen.canvas.put_pixel(xp as u32, yp as u32, pixel);
             }
         }
     }
