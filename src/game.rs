@@ -31,7 +31,7 @@ impl Game {
         use piston_window::OpenGL;
 
         let mut window: PistonWindow =
-            WindowSettings::new("Speartacus", (width * scale, height * scale))
+            WindowSettings::new("ATOMA", (width * scale, height * scale))
                 .exit_on_esc(true)
                 .opengl(OpenGL::V3_2)
                 .build()
@@ -94,7 +94,7 @@ impl Game {
 
                 if (timer.elapsed().as_secs() * 1000 + timer.elapsed().subsec_millis() as u64) > 1000 {
                     timer = timer.add(Duration::from_millis(1000));
-                    self.window.set_title(format!("Speartacus | {} ups, {} frames", updates, frames));
+                    self.window.set_title(format!("ATOMA | {} ups, {} frames", updates, frames));
                     updates = 0;
                     frames = 0;
                 }
