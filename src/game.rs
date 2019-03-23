@@ -7,7 +7,6 @@ use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
 use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
 use std::boxed::Box;
-use std::path::PathBuf;
 
 static EXIT_KEY: &'static Key = &Key::Escape;
 
@@ -45,8 +44,7 @@ impl Game {
             &TextureSettings::new().mag(Filter::Nearest),
         ).unwrap();
 
-        let lvl_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/map.png");
-        let level = Level::load_level(&lvl_path);
+        let level = Level::new(1);
 
         Game {
             width,
@@ -114,7 +112,7 @@ impl Game {
         }
 
         self.level.update();
-        Mob::update(self.player.as_mut(), &self.keyboard, &self.level);
+        Mob::update(self.player.as_mut(), &self.keyboard, &self.level.current_room());
         self.update_offsets();
     }
 

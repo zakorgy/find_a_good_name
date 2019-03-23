@@ -1,6 +1,6 @@
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
-use super::super::level::Level;
+use super::super::level::Room;
 use super::super::graphics::image::{GenericImageView, Rgba};
 
 pub trait Entity {
@@ -13,8 +13,8 @@ pub trait Entity {
 }
 
 pub trait Mob: Entity {
-    fn move_entity(&mut self, x: f32, y: f32, level: &Level);
-    fn update(&mut self, keyboard: &KeyBoard, level: &Level);
+    fn move_entity(&mut self, x: f32, y: f32, room: &Room);
+    fn update(&mut self, keyboard: &KeyBoard, room: &Room);
 }
 
 pub struct Player {
@@ -51,7 +51,7 @@ impl Player {
         }
     }
 
-    fn collision(&self, level: &Level, x_offset: f32, y_offset: f32) -> bool {
+    fn collision(&self, room: &Room, x_offset: f32, y_offset: f32) -> bool {
         let x = (self.x + x_offset) as i32;
         let y = (self.y + y_offset) as i32;
         let x0 = x /*+ 1*/ >> 3;
@@ -60,16 +60,16 @@ impl Player {
         let y7 = (y + 7) >> 3;
         match self.direction {
             Direction::Up => {
-                level.get_tile(x0, y0).solid || level.get_tile(x7, y0).solid
+                room.get_tile(x0, y0).solid || room.get_tile(x7, y0).solid
             },
             Direction::Down => {
-                level.get_tile(x0, y7).solid || level.get_tile(x7, y7).solid
+                room.get_tile(x0, y7).solid || room.get_tile(x7, y7).solid
             },
             Direction::Right => {
-                level.get_tile(x7, y0).solid || level.get_tile(x7, y7).solid
+                room.get_tile(x7, y0).solid || room.get_tile(x7, y7).solid
             },
             Direction::Left => {
-                level.get_tile(x0, y0).solid || level.get_tile(x0, y7).solid
+                room.get_tile(x0, y0).solid || room.get_tile(x0, y7).solid
             },
         }
     }
@@ -122,7 +122,7 @@ impl Entity for Player {
 }
 
 impl Mob for Player {
-    fn move_entity(&mut self, x: f32, y: f32, level: &Level) {
+    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {
         if x < 0.0 {
             self.direction = Direction::Left;
             self.flipped = true;
@@ -133,7 +133,7 @@ impl Mob for Player {
         }
         if y < 0.0 {self.direction = Direction::Up;}
         if y > 0.0 {self.direction = Direction::Down;}
-        if self.collision(&level, x, y) {
+        if self.collision(&room, x, y) {
             self.collides = true;
         } else {
             self.x += x;
@@ -142,7 +142,7 @@ impl Mob for Player {
         }
     }
 
-    fn update(&mut self, keyboard: &KeyBoard, level: &Level) {
+    fn update(&mut self, keyboard: &KeyBoard, room: &Room) {
         let (mut xa, mut ya) = (0.0, 0.0);
         if keyboard.up { ya -= self.speed ; }
         if keyboard.down { ya += self.speed; }
@@ -150,12 +150,12 @@ impl Mob for Player {
         if keyboard.right { xa += self.speed }
         let mut update_sprite = false;
         if xa != 0.0 {
-            self.move_entity(xa, 0.0, level);
+            self.move_entity(xa, 0.0, room);
             update_sprite = true;
         }
 
         if ya != 0.0 {
-            self.move_entity(0.0, ya, level);
+            self.move_entity(0.0, ya, room);
             update_sprite = true;
         }
 

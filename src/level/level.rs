@@ -1,93 +1,43 @@
-use rand::Rng;
-use std::convert::From;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use super::super::graphics::Screen;
-use super::super::graphics::image;
+use super::room::*;
 
 pub struct Level {
-    pub width : i32,
-    pub height: i32,
-    pub tiles: Vec<Tiles>,
-}
-
-pub enum Tiles {
-    Empty,
-    Grass(usize),
-    Ground,
-    Wall(usize),
-    WallTop(usize),
-    Door,
-}
-
-impl From<u32> for Tiles {
-    fn from(num: u32) -> Tiles {
-        match num {
-            1 => Tiles::Ground,
-            2 => Tiles::Grass(0),
-            3 => Tiles::Wall(0),
-            4 => Tiles::WallTop(0),
-            5 => Tiles::Door,
-            _ => Tiles::Empty,
-        }
-    }
+    rooms: HashMap<RoomId, Room>,
+    current: RoomId,
 }
 
 impl Level {
-    pub fn load_level(path: &PathBuf) -> Level {
-        let image = match image::open(&path) {
-            Ok(image) => image.to_rgba(),
-            Err(err) => panic!("Error loading image: {:?}", err),
-        };
-        let (width, height) = image.dimensions();
-        let mut tiles = Vec::new();
-        for y in 0..height {
-            for x in 0..width {
-                match image.get_pixel(x, y) {
-                    image::Rgba{ data: [255, 0, 0, 255]} => tiles.push(Tiles::Wall(rand::thread_rng().gen_range(0_usize, 3))),
-                    image::Rgba{ data: [0, 255, 255, 255]} => tiles.push(Tiles::WallTop(rand::thread_rng().gen_range(0_usize, 3))),
-                    image::Rgba{ data: [0, 255, 0, 255]} => tiles.push(Tiles::Grass(rand::thread_rng().gen_range(0_usize, 2))),
-                    _ => tiles.push(Tiles::Empty),
-                }
-            }
+    pub fn new(room_count: usize) ->Self {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/map.png");
+        let mut rooms = HashMap::new();
+        for i in 0 .. room_count {
+            let room = Room::load_room(&path);
+            let id = i as RoomId;
+            rooms.insert(id, room);
         }
-
         Level {
-            width: width as _,
-            height: height as _,
-            tiles,
+            rooms,
+            current: 0,
         }
+    }
+
+    pub fn current_room(&self) -> &Room {
+        &self.rooms[&self.current]
     }
 
     pub fn update(&mut self) {}
 
     pub fn render(&self, x_scroll: i32, y_scroll: i32, screen: &mut Screen) {
-        screen.set_offset(x_scroll, y_scroll);
-        let x0 = x_scroll >> 3;
-        let x1 = (x_scroll + screen.width as i32) >> 3;
-        let y0 = y_scroll >> 3;
-        let y1 = (y_scroll + screen.height as i32) >> 3;
-
-        for y in y0..=y1 {
-            for x in x0..=x1 {
-                self.get_tile(x, y).render(x, y, screen);
-            }
-        }
-    }
-
-    pub fn get_tile(&self, x: i32, y: i32) -> &'static super::tile::Tile {
-        if x < 0 || x >= self.width || y < 0 || y >= self.height {
-            return &super::tile::VOID_TILE;
-        }
-        match self.tiles.get((x + y * self.width) as usize).expect("Out of bounds") {
-            Tiles::Ground => &super::tile::GROUND_TILES[0],
-            Tiles::Wall(i)  => &super::tile::WALL_TILES[*i],
-            Tiles::WallTop(i) => &super::tile::WALL_TOP_TILES[*i],
-            Tiles::Grass(i) => &super::tile::GRASS_TILES[*i],
-            _ => &super::tile::VOID_TILE,
-        }
+        self.current_room().render(
+            x_scroll,
+            y_scroll,
+            screen,
+        )
     }
 
     pub fn dimensions(&self) -> (i32, i32) {
-        (self.width * 8, self.height * 8)
+        self.current_room().dimensions()
     }
 }
