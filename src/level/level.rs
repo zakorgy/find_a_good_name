@@ -33,7 +33,6 @@ impl From<u32> for Tiles {
 }
 
 impl Level {
-
     pub fn load_level(path: &PathBuf) -> Level {
         let image = match image::open(&path) {
             Ok(image) => image.to_rgba(),

@@ -40,9 +40,6 @@ lazy_static! {
 }
 
 pub struct SpriteSheet {
-    //path: String,
-    //width: u32,
-    //height: u32,
     image: RgbaImage,
 }
 
@@ -53,10 +50,7 @@ impl SpriteSheet {
             Err(err) => panic!("Error loading image: {:?}", err),
         };
 
-        //let (width, height) = (image.width(), image.height());
-
         SpriteSheet {
-            //path, width, height,
             image
         }
     }

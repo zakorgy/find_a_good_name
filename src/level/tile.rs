@@ -38,8 +38,6 @@ lazy_static! {
 }
 
 pub struct Tile {
-    //x: u32,
-    //y: u32,
     pub solid: bool,
     pub sprite: &'static Sprite,
 }
@@ -48,7 +46,6 @@ impl Tile {
     fn new(sprite: &'static Sprite, solid: bool) -> Tile {
 
         Tile {
-            //x: 0, y: 0,
             solid,
             sprite
         }
