@@ -27,6 +27,7 @@ pub enum Tiles {
     Ground,
     Wall(usize),
     WallTop(usize),
+    SpawnPoint(usize),
     Door,
 }
 
@@ -37,7 +38,8 @@ impl From<u32> for Tiles {
             2 => Tiles::Grass(0),
             3 => Tiles::Wall(0),
             4 => Tiles::WallTop(0),
-            5 => Tiles::Door,
+            5 => Tiles::SpawnPoint(0),
+            6 => Tiles::Door,
             _ => Tiles::Empty,
         }
     }
@@ -57,6 +59,7 @@ impl Room {
                     image::Rgba{ data: [255, 0, 0, 255]} => tiles.push(Tiles::Wall(rand::thread_rng().gen_range(0_usize, 3))),
                     image::Rgba{ data: [0, 255, 255, 255]} => tiles.push(Tiles::WallTop(rand::thread_rng().gen_range(0_usize, 3))),
                     image::Rgba{ data: [0, 255, 0, 255]} => tiles.push(Tiles::Grass(rand::thread_rng().gen_range(0_usize, 2))),
+                    image::Rgba{ data: [255, 255, 0, 255]} => tiles.push(Tiles::SpawnPoint(rand::thread_rng().gen_range(0_usize, 2))),
                     _ => tiles.push(Tiles::Empty),
                 }
             }
@@ -95,11 +98,21 @@ impl Room {
             Tiles::Wall(i)  => &super::tile::WALL_TILES[*i],
             Tiles::WallTop(i) => &super::tile::WALL_TOP_TILES[*i],
             Tiles::Grass(i) => &super::tile::GRASS_TILES[*i],
+            Tiles::SpawnPoint(i) => &super::tile::GRASS_TILES[*i],
             _ => &super::tile::VOID_TILE,
         }
     }
 
     pub fn dimensions(&self) -> (i32, i32) {
         (self.width * 8, self.height * 8)
+    }
+
+    pub fn spawn_point(&self) -> (f32, f32) {
+        for (i, tile) in self.tiles.iter().enumerate() {
+            if let Tiles::SpawnPoint(_) = tile {
+                return ((i as i32 % self.width) as f32 * 8f32, (i as i32 / self.width) as f32 * 8f32)
+            }
+        }
+        return (0f32, 0f32)
     }
 }

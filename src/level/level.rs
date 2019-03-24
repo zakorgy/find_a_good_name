@@ -10,7 +10,7 @@ pub struct Level {
 
 impl Level {
     pub fn new(room_count: usize) ->Self {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/map.png");
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/room1.png");
         let mut rooms = HashMap::new();
         for i in 0 .. room_count {
             let room = Room::load_room(&path);

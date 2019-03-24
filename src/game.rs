@@ -45,6 +45,7 @@ impl Game {
         ).unwrap();
 
         let level = Level::new(1);
+        let spawn_point = level.current_room().spawn_point();
 
         Game {
             width,
@@ -58,7 +59,12 @@ impl Game {
             screen,
             texture,
             level,
-            player: Box::new(Player::new(25.0, 25.0, 0.7, AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10])))
+            player: Box::new(Player::new(
+                spawn_point.0,
+                spawn_point.1,
+                0.7,
+                AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10])
+            ))
         }
     }
 
