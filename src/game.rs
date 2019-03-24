@@ -24,7 +24,7 @@ pub struct Game {
     screen: Screen,
     texture: G2dTexture,
     level: Level,
-    player: Box<dyn Mob>,
+    entities: Vec<Box<dyn Mob>>,
 }
 
 impl Game {
@@ -64,13 +64,13 @@ impl Game {
             screen,
             texture,
             level,
-            player: Box::new(Player::new(
+            entities: vec![Box::new(Player::new(
                 spawn_point.0,
                 spawn_point.1,
                 0.7,
                 AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
                 keyboard_player,
-            ))
+            ))]
         }
     }
 
@@ -124,12 +124,14 @@ impl Game {
         }
 
         self.level.update();
-        Mob::update(self.player.as_mut(), &self.level.current_room());
+        for entity in self.entities.iter_mut() {
+            Mob::update(entity.as_mut(), &self.level.current_room())
+        }
         self.update_offsets();
     }
 
     fn update_offsets(&mut self) {
-        let (x, y) = self.player.absolute_pos();
+        let (x, y) = self.entities[0].absolute_pos();
         let (lvl_width, lvl_height) = self.level.dimensions();
 
         self.x_offset = {
@@ -159,7 +161,9 @@ impl Game {
     {
         self.screen.clear();
         self.level.render(self.x_offset, self.y_offset, &mut self.screen);
-        self.player.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
+        for entity in self.entities.iter() {
+            entity.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
+        }
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;
