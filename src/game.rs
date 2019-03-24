@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use super::entity::{Mob, Player};
 use super::graphics::{AnimatedSprite, Screen, PLAYERS};
 use super::input::{Key, KeyBoard};
@@ -17,7 +19,7 @@ pub struct Game {
     y_offset: i32,
     scale: u32,
     running: bool,
-    pub keyboard: KeyBoard,
+    pub keyboard: Rc<RefCell<KeyBoard>>,
     window: PistonWindow,
     screen: Screen,
     texture: G2dTexture,
@@ -47,6 +49,9 @@ impl Game {
         let level = Level::new(1);
         let spawn_point = level.current_room().spawn_point();
 
+        let keyboard = Rc::new(RefCell::new(KeyBoard::new()));
+        let keyboard_player = Rc::clone(&keyboard);
+
         Game {
             width,
             height,
@@ -54,7 +59,7 @@ impl Game {
             y_offset: 0,
             scale,
             running: false,
-            keyboard: KeyBoard::new(),
+            keyboard,
             window,
             screen,
             texture,
@@ -63,7 +68,8 @@ impl Game {
                 spawn_point.0,
                 spawn_point.1,
                 0.7,
-                AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10])
+                AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
+                keyboard_player,
             ))
         }
     }
@@ -85,7 +91,7 @@ impl Game {
         let mut updates= 0_u32;
         while let Some(e) = self.window.next() {
             if self.running {
-                self.keyboard.update(&e);
+                self.keyboard.borrow_mut().update(&e);
                 delta += last_time.elapsed().subsec_nanos() as f64 / ns;
                 last_time = Instant::now();
                 while delta >= 1.0 {
@@ -113,12 +119,12 @@ impl Game {
     }
 
     fn update<E: GenericEvent>(&mut self, _event: &E) {
-        if self.keyboard.contains_key(&EXIT_KEY) {
+        if self.keyboard.borrow().contains_key(&EXIT_KEY) {
             self.stop();
         }
 
         self.level.update();
-        Mob::update(self.player.as_mut(), &self.keyboard, &self.level.current_room());
+        Mob::update(self.player.as_mut(), &self.level.current_room());
         self.update_offsets();
     }
 

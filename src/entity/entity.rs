@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Room;
@@ -14,7 +16,7 @@ pub trait Entity {
 
 pub trait Mob: Entity {
     fn move_entity(&mut self, x: f32, y: f32, room: &Room);
-    fn update(&mut self, keyboard: &KeyBoard, room: &Room);
+    fn update(&mut self, room: &Room);
 }
 
 pub struct Player {
@@ -26,6 +28,7 @@ pub struct Player {
     sprite: AnimatedSprite,
     collides: bool,
     flipped: bool,
+    keyboard: Rc<RefCell<KeyBoard>>,
 }
 
 
@@ -38,7 +41,7 @@ pub enum Direction {
 }
 
 impl Player {
-    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite) -> Player {
+    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite, keyboard: Rc<RefCell<KeyBoard>>) -> Player {
         Player {
             x,
             y,
@@ -48,6 +51,7 @@ impl Player {
             sprite,
             collides: false,
             flipped: false,
+            keyboard,
         }
     }
 
@@ -142,12 +146,12 @@ impl Mob for Player {
         }
     }
 
-    fn update(&mut self, keyboard: &KeyBoard, room: &Room) {
+    fn update(&mut self, room: &Room) {
         let (mut xa, mut ya) = (0.0, 0.0);
-        if keyboard.up { ya -= self.speed ; }
-        if keyboard.down { ya += self.speed; }
-        if keyboard.left { xa -= self.speed }
-        if keyboard.right { xa += self.speed }
+        if self.keyboard.borrow().up { ya -= self.speed ; }
+        if self.keyboard.borrow().down { ya += self.speed; }
+        if self.keyboard.borrow().left { xa -= self.speed }
+        if self.keyboard.borrow().right { xa += self.speed }
         let mut update_sprite = false;
         if xa != 0.0 {
             self.move_entity(xa, 0.0, room);
