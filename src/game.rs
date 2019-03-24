@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use super::entity::{Mob, Player};
-use super::graphics::{AnimatedSprite, Screen, PLAYERS};
+use super::entity::{Enemy, Mob, Player};
+use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS};
 use super::input::{Key, KeyBoard};
 use super::level::Level;
 use piston_window::{PistonWindow, WindowSettings};
@@ -82,6 +82,14 @@ impl Game {
         use piston_window::AdvancedWindow;
         use std::time::{Duration, Instant};
         use std::ops::Add;
+
+        let enemy = Box::new(Enemy::new(
+           32f32,
+           32f32,
+           0.5,
+           AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
+        ));
+        self.entities.push(enemy);
 
         let mut last_time = Instant::now();
         let mut timer = Instant::now();

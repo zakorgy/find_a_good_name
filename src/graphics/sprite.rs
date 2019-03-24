@@ -14,6 +14,9 @@ lazy_static! {
     static ref PLAYER0: Sprite = Sprite::new(8, 7, 7, &SHEET);
     static ref PLAYER1: Sprite = Sprite::new(8, 0, 8, &SHEET);
     pub static ref PLAYERS: Vec<&'static Sprite> = vec![&PLAYER0, &PLAYER1];
+    static ref ENEMY0: Sprite = Sprite::new(8, 2, 9, &SHEET);
+    static ref ENEMY1: Sprite = Sprite::new(8, 3, 9, &SHEET);
+    pub static ref ENEMIES: Vec<&'static Sprite> = vec![&ENEMY0, &ENEMY1];
     pub static ref GROUNDS: Vec<&'static Sprite> = vec![&GROUND1, &GROUND2];
     static ref WALL_TOP0: Sprite = Sprite::new(8, 1, 0, &SHEET);
     static ref WALL_TOP1: Sprite = Sprite::new(8, 2, 0, &SHEET);
@@ -107,7 +110,7 @@ impl AnimatedSprite {
     }
 
     pub fn view(&self) -> SubImage<&RgbaImage> {
-        self.sprites[self.current].view()
+        self.sprites[self.current % self.sprites.len()].view()
     }
 
     pub fn reset(&mut self) {
