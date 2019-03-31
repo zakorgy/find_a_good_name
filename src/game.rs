@@ -172,6 +172,7 @@ impl Game {
         for entity in self.entities.iter() {
             entity.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
         }
+        self.screen.render_map(&self.level.map_grid);
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;

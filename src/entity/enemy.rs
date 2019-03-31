@@ -1,6 +1,5 @@
 use super::entity::{Entity, Direction, Mob};
 use super::super::graphics::{AnimatedSprite, Screen};
-use super::super::input::KeyBoard;
 use super::super::level::Room;
 use super::super::graphics::image::{GenericImageView, Rgba};
 

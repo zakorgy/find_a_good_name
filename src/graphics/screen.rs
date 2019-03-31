@@ -1,6 +1,6 @@
 use image::GenericImageView;
 use rand::Rng;
-use super::super::level::Tile;
+use super::super::level::{Tile, NO_ROOM_TILE, ROOM_TILE};
 
 pub struct Screen {
     pub width: u32,
@@ -43,6 +43,21 @@ impl Screen {
                     continue;
                 }
                 self.canvas.put_pixel(xa as u32, ya as u32, tile.sprite.view().get_pixel(x, y))
+            }
+        }
+    }
+
+    pub fn render_map(&mut self, map_grid: &[[bool; 8]; 8]) {
+        use image::GenericImage;
+        let x_start = self.width - 140;
+        let y_start = 0;
+        for x in 0..8 {
+            for y in 0..8 {
+                if map_grid[x][y] {
+                   let rendered = self.canvas.copy_from(&ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+                } else {
+                    let rendered = self.canvas.copy_from(&NO_ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+                }
             }
         }
     }

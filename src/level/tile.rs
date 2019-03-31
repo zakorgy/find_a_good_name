@@ -1,4 +1,4 @@
-use super::super::graphics::{Screen, Sprite, GRASSES, GROUNDS, VOID, WALLS, WALL_TOPS};
+use super::super::graphics::{Screen, Sprite, DOOR, GRASSES, GROUNDS, VOID, WALLS, WALL_TOPS, ROOM, NO_ROOM};
 
 lazy_static! {
     static ref GROUND_TILE0: Tile = Tile::new(GROUNDS[0], false);
@@ -13,6 +13,9 @@ lazy_static! {
     static ref GRASS_TILE1: Tile = Tile::new(GRASSES[1], false);
 
     pub static ref VOID_TILE: Tile = Tile::new(&VOID, true);
+    pub static ref DOOR_TILE: Tile = Tile::new(&DOOR, false);
+    pub static ref ROOM_TILE: Tile = Tile::new(&ROOM, false);
+    pub static ref NO_ROOM_TILE: Tile = Tile::new(&NO_ROOM, false);
 
     pub static ref WALL_TOP_TILES: Vec<&'static Tile> = vec![
         &WALL_TOP_TILE0,
