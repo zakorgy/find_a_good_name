@@ -1,6 +1,6 @@
 use image::GenericImageView;
 use rand::Rng;
-use super::super::level::{Tile, NO_ROOM_TILE, ROOM_TILE};
+use super::super::level::{MapInfo, Tile, CURRENT_ROOM_TILE, NO_ROOM_TILE, ROOM_TILE};
 
 pub struct Screen {
     pub width: u32,
@@ -47,16 +47,20 @@ impl Screen {
         }
     }
 
-    pub fn render_map(&mut self, map_grid: &[[bool; 8]; 8]) {
+    pub fn render_map<'a>(&mut self, map_info: MapInfo<'a>) {
         use image::GenericImage;
-        let x_start = self.width - 140;
+        let x_start = 41;
         let y_start = 0;
-        for x in 0..8 {
-            for y in 0..8 {
-                if map_grid[x][y] {
-                   let rendered = self.canvas.copy_from(&ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+        for x in 0..9 {
+            for y in 0..9 {
+                if map_info.map_grid[x][y] {
+                    if (x as i32, y as i32) == map_info.current_grid_pos {
+                        self.canvas.copy_from(&CURRENT_ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+                    } else {
+                        self.canvas.copy_from(&ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+                    }
                 } else {
-                    let rendered = self.canvas.copy_from(&NO_ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+                    self.canvas.copy_from(&NO_ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
                 }
             }
         }

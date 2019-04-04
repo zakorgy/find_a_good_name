@@ -11,7 +11,7 @@ mod game;
 mod input;
 mod level;
 
-const WIDTH: u32 = 175;
+const WIDTH: u32 = 200;
 const HEIGHT: u32 = WIDTH / 16 * 9;
 const SCALE: u32 = 6;
 

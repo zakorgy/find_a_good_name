@@ -1,5 +1,6 @@
 use rand::Rng;
 use std::convert::From;
+use std::default::Default;
 use std::path::PathBuf;
 use super::super::graphics::Screen;
 use super::super::graphics::image;
@@ -15,9 +16,17 @@ pub enum Neighbour {
     Invalid,
 }
 
+impl Default for Neighbour {
+    fn default() -> Self { Neighbour::Invalid }
+}
+
 pub enum RoomType {
     Start,
     Normal,
+}
+
+impl Default for RoomType {
+    fn default() -> Self { RoomType::Normal }
 }
 
 pub enum Tiles {
@@ -44,41 +53,33 @@ impl From<u32> for Tiles {
     }
 }
 
+#[derive(Default)]
 pub struct RoomBuilder {
-    //width : i32,
-    //height: i32,
     neighbours: [Neighbour; 4],
     room_type: RoomType,
     grid_pos: (i32, i32),
     path: PathBuf,
+    id: RoomId,
 }
 
 impl RoomBuilder {
     pub fn new() -> RoomBuilder {
         RoomBuilder {
-            //width: 0,
-            //height: 0,
             neighbours:[Neighbour::Invalid; 4],
             room_type: RoomType::Normal,
             grid_pos: (0, 0),
             path: Default::default(),
+            id: 0,
         }
     }
 
-    // pub fn with_dimensions(mut self, width: i32, height: i32) -> RoomBuilder {
-    //     self.width = width;
-    //     self.height = height;
-    //     self
-    // }
-
-    pub fn with_neighbour(mut self, neighbour: Neighbour) -> RoomBuilder {
-        for mut n in self.neighbours.iter_mut() {
+    pub fn add_neighbour(&mut self, neighbour: Neighbour) {
+        for n in self.neighbours.iter_mut() {
             if *n == Neighbour::Invalid {
                 *n = neighbour;
                 break;
             }
         }
-        self
     }
 
     pub fn with_room_type(mut self, room_type: RoomType) -> RoomBuilder {
@@ -96,10 +97,15 @@ impl RoomBuilder {
         self
     }
 
-    pub fn build(self) -> Room {
+    pub fn with_id(mut self, id: RoomId) -> RoomBuilder {
+        self.id = id;
+        self
+    }
+
+    pub fn build(self) -> (RoomId, Room) {
         let image = match image::open(&self.path) {
             Ok(image) => image.to_rgba(),
-            Err(err) => panic!("Error loading image: {:?}", err),
+            Err(err) => panic!("Error loading image: {:?} with path {:?}", err, &self.path),
         };
         let (width, height) = image.dimensions();
         let mut tiles = Vec::new();
@@ -115,14 +121,14 @@ impl RoomBuilder {
                 }
             }
         }
-        Room {
+        (self.id, Room {
             neighbours: self.neighbours,
             width: width as _,
             height: height as _,
             tiles,
             room_type: self.room_type,
             grid_pos: self.grid_pos,
-        }
+        })
     }
 }
 
@@ -136,9 +142,6 @@ pub struct Room {
 }
 
 impl Room {
-    pub fn load_room(path: &PathBuf) -> Room {
-        RoomBuilder::new().with_path(path).build()
-    }
 
     pub fn update(&mut self) {}
 

@@ -46,7 +46,7 @@ impl Game {
             &TextureSettings::new().mag(Filter::Nearest),
         ).unwrap();
 
-        let level = Level::new(1);
+        let level = Level::new(27);
         let spawn_point = level.current_room().spawn_point();
 
         let keyboard = Rc::new(RefCell::new(KeyBoard::new()));
@@ -144,7 +144,7 @@ impl Game {
 
         self.x_offset = {
             let half_width = (self.width / 2) as i32;
-            if x < half_width {
+            if x < half_width || lvl_width <= self.width as i32 {
                 0
             } else if x > lvl_width - half_width {
                 lvl_width - self.width as i32
@@ -155,7 +155,7 @@ impl Game {
 
         self.y_offset = {
             let half_height = (self.height / 2) as i32;
-            if y < half_height {
+            if y < half_height || lvl_height <= self.height as i32 {
                 0
             } else if y > lvl_height - half_height {
                 lvl_height - self.height as i32
@@ -172,7 +172,7 @@ impl Game {
         for entity in self.entities.iter() {
             entity.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
         }
-        self.screen.render_map(&self.level.map_grid);
+        self.screen.render_map(self.level.map_info());
         self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;

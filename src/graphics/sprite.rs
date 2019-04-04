@@ -42,7 +42,8 @@ lazy_static! {
     ];
     pub static ref DOOR: Sprite = Sprite::new(8, 2, 1, &SHEET);
     pub static ref ROOM: Sprite = Sprite::new(4, 12, 28, &SHEET);
-    pub static ref NO_ROOM: Sprite = Sprite::new(4, 0, 0, &SHEET);
+    pub static ref CURRENT_ROOM: Sprite = Sprite::new(4, 12, 29, &SHEET);
+    pub static ref NO_ROOM: Sprite = Sprite::new(4, 13, 28, &SHEET);
 }
 
 pub struct SpriteSheet {
