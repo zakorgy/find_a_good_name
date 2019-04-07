@@ -1,7 +1,7 @@
-use super::entity::{Entity, Direction, Mob};
+use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::level::Room;
-use super::super::graphics::image::{GenericImageView, Rgba};
+use super::entity::{Direction, Entity, Mob};
 
 pub struct Enemy {
     x: f32,
@@ -35,23 +35,34 @@ impl Entity for Enemy {
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
         let pixels = self.sprite.view();
         let (ax, ay) = self.relative_pos(x_offset, y_offset);
-        for y in 0 .. self.sprite.size() {
-            for x in 0 .. self.sprite.size() {
+        for y in 0..self.sprite.size() {
+            for x in 0..self.sprite.size() {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
-                if xp < 0 || xp >= screen.width as i32
-                    || yp < 0 ||yp >= screen.height as i32 {
+                if xp < 0 || xp >= screen.width as i32 || yp < 0 || yp >= screen.height as i32 {
                     continue;
                 }
                 #[cfg(feature = "debug_rect")]
+                {
+                    if y == 0
+                        || y == self.sprite.size() - 1
+                        || x == 0
+                        || x == self.sprite.size() - 1
                     {
-                        if y == 0 || y == self.sprite.size() - 1 || x == 0 || x == self.sprite.size() - 1 {
-                            screen.canvas.put_pixel(xp as u32, yp as u32, Rgba {data: [255, 0, 255, 255]});
-                            continue;
-                        }
+                        screen.canvas.put_pixel(
+                            xp as u32,
+                            yp as u32,
+                            Rgba {
+                                data: [255, 0, 255, 255],
+                            },
+                        );
+                        continue;
                     }
+                }
                 let pixel = match pixels.get_pixel(if self.flipped { 7 - x } else { x }, y) {
-                    Rgba {data: [255, 0, 255, 255]} => continue,
+                    Rgba {
+                        data: [255, 0, 255, 255],
+                    } => continue,
                     pixel => pixel,
                 };
                 screen.canvas.put_pixel(xp as u32, yp as u32, pixel);

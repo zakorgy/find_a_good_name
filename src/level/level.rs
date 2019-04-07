@@ -1,20 +1,19 @@
 use rand::{thread_rng, Rng};
 
-use std::collections::HashMap;
-use std::path::PathBuf;
 use super::super::graphics::Screen;
 use super::room::*;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 struct LevelBuilder {
-	rooms: [[Option<RoomBuilder>; 9]; 9],
-	taken_positions: Vec<(i32, i32)>,
+    rooms: [[Option<RoomBuilder>; 9]; 9],
+    taken_positions: Vec<(i32, i32)>,
     possible_positions: Vec<(i32, i32)>,
-	number_of_rooms: usize,
+    number_of_rooms: usize,
     next_id: u8,
 }
 
 impl LevelBuilder {
-
     //Fill a 2D array with zeros (type: integer, 0 means nothing to place there)
     //Set the place of the starting room (for example at [5,5])
     //Select a random array element in this 2 dimensional array.
@@ -57,7 +56,7 @@ impl LevelBuilder {
         let mut free_positions = Vec::new();
         for x in [pos.0 - 1, pos.0 + 1].into_iter() {
             if *x < 0 || *x > 8 {
-                continue
+                continue;
             }
             let y = pos.1;
             if let None = self.rooms[*x as usize][y as usize] {
@@ -66,7 +65,7 @@ impl LevelBuilder {
         }
         for y in [pos.1 - 1, pos.1 + 1].into_iter() {
             if *y < 0 || *y > 8 {
-                continue
+                continue;
             }
             let x = pos.0;
             if let None = self.rooms[x as usize][*y as usize] {
@@ -78,7 +77,7 @@ impl LevelBuilder {
 
     pub fn build(mut self) -> Level {
         self.create_rooms();
-		self.set_room_doors();
+        self.set_room_doors();
 
         let mut map_grid = [[false; 9]; 9];
         let mut rooms = HashMap::new();
@@ -87,7 +86,7 @@ impl LevelBuilder {
             for y in 0..9 {
                 if let Some(room) = std::mem::replace(&mut self.rooms[x][y], None) {
                     map_grid[x][y] = true;
-                    let(id, room) = room.build();
+                    let (id, room) = room.build();
                     rooms.insert(id, room);
                 }
             }
@@ -105,7 +104,7 @@ impl LevelBuilder {
         let mut rng = thread_rng();
         let mut new_room_index = 0;
         let mut new_pos = (0, 0);
-        for _ in 1 .. self.number_of_rooms {
+        for _ in 1..self.number_of_rooms {
             for _ in 0..400 {
                 new_room_index = rng.gen_range(0, self.possible_positions.len());
                 new_pos = self.possible_positions[new_room_index];
@@ -115,7 +114,10 @@ impl LevelBuilder {
             }
 
             // add new room to rooms
-            let room = RoomBuilder::new().with_path(&path).with_grid_pos(new_pos).with_id(self.next_id);
+            let room = RoomBuilder::new()
+                .with_path(&path)
+                .with_grid_pos(new_pos)
+                .with_id(self.next_id);
             self.next_id += 1;
             self.rooms[new_pos.0 as usize][new_pos.1 as usize] = Some(room);
 
@@ -129,7 +131,6 @@ impl LevelBuilder {
             self.possible_positions.remove(new_room_index);
             let ref free_positions = self.free_neighbour_positions(new_pos);
             self.possible_positions.extend_from_slice(free_positions);
-
 
             if self.taken_positions.len() == self.number_of_rooms {
                 break;
@@ -185,7 +186,7 @@ pub struct Level {
 }
 
 impl Level {
-    pub fn new(room_count: usize) ->Self {
+    pub fn new(room_count: usize) -> Self {
         LevelBuilder::new().with_number_of_rooms(room_count).build()
     }
 
@@ -196,11 +197,7 @@ impl Level {
     pub fn update(&mut self) {}
 
     pub fn render(&self, x_scroll: i32, y_scroll: i32, screen: &mut Screen) {
-        self.current_room().render(
-            x_scroll,
-            y_scroll,
-            screen,
-        );
+        self.current_room().render(x_scroll, y_scroll, screen);
     }
 
     pub fn dimensions(&self) -> (i32, i32) {

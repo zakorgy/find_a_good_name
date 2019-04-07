@@ -1,9 +1,9 @@
+use super::super::graphics::image;
+use super::super::graphics::Screen;
 use rand::Rng;
 use std::convert::From;
 use std::default::Default;
 use std::path::PathBuf;
-use super::super::graphics::Screen;
-use super::super::graphics::image;
 
 pub(crate) type RoomId = u8;
 
@@ -17,7 +17,9 @@ pub enum Neighbour {
 }
 
 impl Default for Neighbour {
-    fn default() -> Self { Neighbour::Invalid }
+    fn default() -> Self {
+        Neighbour::Invalid
+    }
 }
 
 pub enum RoomType {
@@ -26,7 +28,9 @@ pub enum RoomType {
 }
 
 impl Default for RoomType {
-    fn default() -> Self { RoomType::Normal }
+    fn default() -> Self {
+        RoomType::Normal
+    }
 }
 
 pub enum Tiles {
@@ -65,7 +69,7 @@ pub struct RoomBuilder {
 impl RoomBuilder {
     pub fn new() -> RoomBuilder {
         RoomBuilder {
-            neighbours:[Neighbour::Invalid; 4],
+            neighbours: [Neighbour::Invalid; 4],
             room_type: RoomType::Normal,
             grid_pos: (0, 0),
             path: Default::default(),
@@ -112,28 +116,41 @@ impl RoomBuilder {
         for y in 0..height {
             for x in 0..width {
                 match image.get_pixel(x, y) {
-                    image::Rgba{ data: [255, 0, 0, 255]} => tiles.push(Tiles::Wall(rand::thread_rng().gen_range(0_usize, 3))),
-                    image::Rgba{ data: [0, 0, 255, 255]} => tiles.push(Tiles::Door),
-                    image::Rgba{ data: [0, 255, 255, 255]} => tiles.push(Tiles::WallTop(rand::thread_rng().gen_range(0_usize, 3))),
-                    image::Rgba{ data: [0, 255, 0, 255]} => tiles.push(Tiles::Grass(rand::thread_rng().gen_range(0_usize, 2))),
-                    image::Rgba{ data: [255, 255, 0, 255]} => tiles.push(Tiles::SpawnPoint(rand::thread_rng().gen_range(0_usize, 2))),
+                    image::Rgba {
+                        data: [255, 0, 0, 255],
+                    } => tiles.push(Tiles::Wall(rand::thread_rng().gen_range(0_usize, 3))),
+                    image::Rgba {
+                        data: [0, 0, 255, 255],
+                    } => tiles.push(Tiles::Door),
+                    image::Rgba {
+                        data: [0, 255, 255, 255],
+                    } => tiles.push(Tiles::WallTop(rand::thread_rng().gen_range(0_usize, 3))),
+                    image::Rgba {
+                        data: [0, 255, 0, 255],
+                    } => tiles.push(Tiles::Grass(rand::thread_rng().gen_range(0_usize, 2))),
+                    image::Rgba {
+                        data: [255, 255, 0, 255],
+                    } => tiles.push(Tiles::SpawnPoint(rand::thread_rng().gen_range(0_usize, 2))),
                     _ => tiles.push(Tiles::Empty),
                 }
             }
         }
-        (self.id, Room {
-            neighbours: self.neighbours,
-            width: width as _,
-            height: height as _,
-            tiles,
-            room_type: self.room_type,
-            grid_pos: self.grid_pos,
-        })
+        (
+            self.id,
+            Room {
+                neighbours: self.neighbours,
+                width: width as _,
+                height: height as _,
+                tiles,
+                room_type: self.room_type,
+                grid_pos: self.grid_pos,
+            },
+        )
     }
 }
 
 pub struct Room {
-    pub width : i32,
+    pub width: i32,
     pub height: i32,
     pub neighbours: [Neighbour; 4],
     pub tiles: Vec<Tiles>,
@@ -142,7 +159,6 @@ pub struct Room {
 }
 
 impl Room {
-
     pub fn update(&mut self) {}
 
     pub fn render(&self, x_scroll: i32, y_scroll: i32, screen: &mut Screen) {
@@ -163,9 +179,13 @@ impl Room {
         if x < 0 || x >= self.width || y < 0 || y >= self.height {
             return &super::tile::VOID_TILE;
         }
-        match self.tiles.get((x + y * self.width) as usize).expect("Out of bounds") {
+        match self
+            .tiles
+            .get((x + y * self.width) as usize)
+            .expect("Out of bounds")
+        {
             Tiles::Ground => &super::tile::GROUND_TILES[0],
-            Tiles::Wall(i)  => &super::tile::WALL_TILES[*i],
+            Tiles::Wall(i) => &super::tile::WALL_TILES[*i],
             Tiles::WallTop(i) => &super::tile::WALL_TOP_TILES[*i],
             Tiles::Grass(i) => &super::tile::GRASS_TILES[*i],
             Tiles::SpawnPoint(i) => &super::tile::GRASS_TILES[*i],
@@ -181,9 +201,12 @@ impl Room {
     pub fn spawn_point(&self) -> (f32, f32) {
         for (i, tile) in self.tiles.iter().enumerate() {
             if let Tiles::SpawnPoint(_) = tile {
-                return ((i as i32 % self.width) as f32 * 8f32, (i as i32 / self.width) as f32 * 8f32)
+                return (
+                    (i as i32 % self.width) as f32 * 8f32,
+                    (i as i32 / self.width) as f32 * 8f32,
+                );
             }
         }
-        return (0f32, 0f32)
+        return (0f32, 0f32);
     }
 }

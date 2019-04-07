@@ -30,17 +30,13 @@ impl KeyBoard {
             self.keys.remove(&button);
         };
 
-        self.up = self.keys.contains(&Key::Up) ||
-            self.keys.contains(&Key::W);
+        self.up = self.keys.contains(&Key::Up) || self.keys.contains(&Key::W);
 
-        self.down = self.keys.contains(&Key::Down) ||
-            self.keys.contains(&Key::S);
+        self.down = self.keys.contains(&Key::Down) || self.keys.contains(&Key::S);
 
-        self.left = self.keys.contains(&Key::Left) ||
-            self.keys.contains(&Key::A);
+        self.left = self.keys.contains(&Key::Left) || self.keys.contains(&Key::A);
 
-        self.right = self.keys.contains(&Key::Right) ||
-            self.keys.contains(&Key::D);
+        self.right = self.keys.contains(&Key::Right) || self.keys.contains(&Key::D);
     }
 
     pub fn contains_key(&self, key: &Key) -> bool {

@@ -6,8 +6,8 @@ extern crate piston;
 extern crate piston_window;
 
 mod entity;
-mod graphics;
 mod game;
+mod graphics;
 mod input;
 mod level;
 

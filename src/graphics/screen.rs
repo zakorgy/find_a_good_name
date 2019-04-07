@@ -1,6 +1,6 @@
+use super::super::level::{MapInfo, Tile, CURRENT_ROOM_TILE, NO_ROOM_TILE, ROOM_TILE};
 use image::GenericImageView;
 use rand::Rng;
-use super::super::level::{MapInfo, Tile, CURRENT_ROOM_TILE, NO_ROOM_TILE, ROOM_TILE};
 
 pub struct Screen {
     pub width: u32,
@@ -38,11 +38,11 @@ impl Screen {
             let ya = y as i32 + yp;
             for x in 0..tile.sprite.size {
                 let xa = x as i32 + xp;
-                if xa < 0 || xa >= self.width as i32
-                    || ya < 0 || ya >= self.height as i32 {
+                if xa < 0 || xa >= self.width as i32 || ya < 0 || ya >= self.height as i32 {
                     continue;
                 }
-                self.canvas.put_pixel(xa as u32, ya as u32, tile.sprite.view().get_pixel(x, y))
+                self.canvas
+                    .put_pixel(xa as u32, ya as u32, tile.sprite.view().get_pixel(x, y))
             }
         }
     }
@@ -55,12 +55,24 @@ impl Screen {
             for y in 0..9 {
                 if map_info.map_grid[x][y] {
                     if (x as i32, y as i32) == map_info.current_grid_pos {
-                        self.canvas.copy_from(&CURRENT_ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+                        self.canvas.copy_from(
+                            &CURRENT_ROOM_TILE.sprite.view(),
+                            x_start + (x as u32) << 2,
+                            y_start + (y as u32) << 2,
+                        );
                     } else {
-                        self.canvas.copy_from(&ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+                        self.canvas.copy_from(
+                            &ROOM_TILE.sprite.view(),
+                            x_start + (x as u32) << 2,
+                            y_start + (y as u32) << 2,
+                        );
                     }
                 } else {
-                    self.canvas.copy_from(&NO_ROOM_TILE.sprite.view(), x_start + (x as u32) << 2, y_start + (y as u32) << 2);
+                    self.canvas.copy_from(
+                        &NO_ROOM_TILE.sprite.view(),
+                        x_start + (x as u32) << 2,
+                        y_start + (y as u32) << 2,
+                    );
                 }
             }
         }
@@ -69,7 +81,7 @@ impl Screen {
     pub fn clear(&mut self) {
         for pixel in self.canvas.pixels_mut() {
             *pixel = image::Rgba([0, 0, 0, 255]);
-        };
+        }
     }
 
     pub fn set_offset(&mut self, x_offset: i32, y_offset: i32) {

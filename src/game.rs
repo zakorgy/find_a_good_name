@@ -1,14 +1,14 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use super::entity::{Enemy, Mob, Player};
 use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS};
 use super::input::{Key, KeyBoard};
 use super::level::Level;
-use piston_window::{PistonWindow, WindowSettings};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
 use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
+use piston_window::{PistonWindow, WindowSettings};
 use std::boxed::Box;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 static EXIT_KEY: &'static Key = &Key::Escape;
 
@@ -44,7 +44,8 @@ impl Game {
             &mut window.factory,
             &screen.canvas,
             &TextureSettings::new().mag(Filter::Nearest),
-        ).unwrap();
+        )
+        .unwrap();
 
         let level = Level::new(27);
         let spawn_point = level.current_room().spawn_point();
@@ -70,7 +71,7 @@ impl Game {
                 0.7,
                 AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
                 keyboard_player,
-            ))]
+            ))],
         }
     }
 
@@ -80,14 +81,14 @@ impl Game {
 
     pub fn run(&mut self) {
         use piston_window::AdvancedWindow;
-        use std::time::{Duration, Instant};
         use std::ops::Add;
+        use std::time::{Duration, Instant};
 
         let enemy = Box::new(Enemy::new(
-           32f32,
-           32f32,
-           0.5,
-           AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
+            32f32,
+            32f32,
+            0.5,
+            AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
         ));
         self.entities.push(enemy);
 
@@ -96,7 +97,7 @@ impl Game {
         let ns = 1_000_000_000.0_f64 / 60.0_f64;
         let mut delta = 0.0_f64;
         let mut frames = 0_u32;
-        let mut updates= 0_u32;
+        let mut updates = 0_u32;
         while let Some(e) = self.window.next() {
             if self.running {
                 self.keyboard.borrow_mut().update(&e);
@@ -104,15 +105,18 @@ impl Game {
                 last_time = Instant::now();
                 while delta >= 1.0 {
                     self.update(&e);
-                   updates += 1;
-                   delta -= 1.0;
+                    updates += 1;
+                    delta -= 1.0;
                 }
                 self.render(&e);
                 frames += 1;
 
-                if (timer.elapsed().as_secs() * 1000 + timer.elapsed().subsec_millis() as u64) > 1000 {
+                if (timer.elapsed().as_secs() * 1000 + timer.elapsed().subsec_millis() as u64)
+                    > 1000
+                {
                     timer = timer.add(Duration::from_millis(1000));
-                    self.window.set_title(format!("ATOMA | {} ups, {} frames", updates, frames));
+                    self.window
+                        .set_title(format!("ATOMA | {} ups, {} frames", updates, frames));
                     updates = 0;
                     frames = 0;
                 }
@@ -165,20 +169,22 @@ impl Game {
         };
     }
 
-    fn render<E: GenericEvent>(&mut self, event: &E)
-    {
+    fn render<E: GenericEvent>(&mut self, event: &E) {
         self.screen.clear();
-        self.level.render(self.x_offset, self.y_offset, &mut self.screen);
+        self.level
+            .render(self.x_offset, self.y_offset, &mut self.screen);
         for entity in self.entities.iter() {
             entity.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
         }
         self.screen.render_map(self.level.map_info());
-        self.texture.update(&mut self.window.encoder, &self.screen.canvas).unwrap();
+        self.texture
+            .update(&mut self.window.encoder, &self.screen.canvas)
+            .unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;
-        self.window.draw_2d::<E,_, _>(&event, |c, g| {
-                clear([1.0; 4], g);
-                draw_image(texture, c.scale(scale, scale).transform, g);
+        self.window.draw_2d::<E, _, _>(&event, |c, g| {
+            clear([1.0; 4], g);
+            draw_image(texture, c.scale(scale, scale).transform, g);
         });
     }
 }

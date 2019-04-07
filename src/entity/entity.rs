@@ -1,9 +1,9 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Room;
-use super::super::graphics::image::{GenericImageView, Rgba};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub trait Entity {
     fn update(&mut self);
@@ -31,7 +31,6 @@ pub struct Player {
     keyboard: Rc<RefCell<KeyBoard>>,
 }
 
-
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Direction {
     Up,
@@ -41,7 +40,13 @@ pub enum Direction {
 }
 
 impl Player {
-    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite, keyboard: Rc<RefCell<KeyBoard>>) -> Player {
+    pub fn new(
+        x: f32,
+        y: f32,
+        speed: f32,
+        sprite: AnimatedSprite,
+        keyboard: Rc<RefCell<KeyBoard>>,
+    ) -> Player {
         Player {
             x,
             y,
@@ -63,18 +68,10 @@ impl Player {
         let x7 = (x + 7) >> 3;
         let y7 = (y + 7) >> 3;
         match self.direction {
-            Direction::Up => {
-                room.get_tile(x0, y0).solid || room.get_tile(x7, y0).solid
-            },
-            Direction::Down => {
-                room.get_tile(x0, y7).solid || room.get_tile(x7, y7).solid
-            },
-            Direction::Right => {
-                room.get_tile(x7, y0).solid || room.get_tile(x7, y7).solid
-            },
-            Direction::Left => {
-                room.get_tile(x0, y0).solid || room.get_tile(x0, y7).solid
-            },
+            Direction::Up => room.get_tile(x0, y0).solid || room.get_tile(x7, y0).solid,
+            Direction::Down => room.get_tile(x0, y7).solid || room.get_tile(x7, y7).solid,
+            Direction::Right => room.get_tile(x7, y0).solid || room.get_tile(x7, y7).solid,
+            Direction::Left => room.get_tile(x0, y0).solid || room.get_tile(x0, y7).solid,
         }
     }
 }
@@ -85,23 +82,34 @@ impl Entity for Player {
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
         let pixels = self.sprite.view();
         let (ax, ay) = self.relative_pos(x_offset, y_offset);
-        for y in 0 .. self.sprite.size() {
-            for x in 0 .. self.sprite.size() {
+        for y in 0..self.sprite.size() {
+            for x in 0..self.sprite.size() {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
-                if xp < 0 || xp >= screen.width as i32
-                    || yp < 0 ||yp >= screen.height as i32 {
+                if xp < 0 || xp >= screen.width as i32 || yp < 0 || yp >= screen.height as i32 {
                     continue;
                 }
                 #[cfg(feature = "debug_rect")]
                 {
-                    if y == 0 || y == self.sprite.size() - 1 || x == 0 || x == self.sprite.size() - 1 {
-                        screen.canvas.put_pixel(xp as u32, yp as u32, Rgba {data: [255, 0, 255, 255]});
+                    if y == 0
+                        || y == self.sprite.size() - 1
+                        || x == 0
+                        || x == self.sprite.size() - 1
+                    {
+                        screen.canvas.put_pixel(
+                            xp as u32,
+                            yp as u32,
+                            Rgba {
+                                data: [255, 0, 255, 255],
+                            },
+                        );
                         continue;
                     }
                 }
                 let pixel = match pixels.get_pixel(if self.flipped { 7 - x } else { x }, y) {
-                    Rgba {data: [255, 0, 255, 255]} => continue,
+                    Rgba {
+                        data: [255, 0, 255, 255],
+                    } => continue,
                     pixel => pixel,
                 };
                 screen.canvas.put_pixel(xp as u32, yp as u32, pixel);
@@ -135,8 +143,12 @@ impl Mob for Player {
             self.direction = Direction::Right;
             self.flipped = false;
         }
-        if y < 0.0 {self.direction = Direction::Up;}
-        if y > 0.0 {self.direction = Direction::Down;}
+        if y < 0.0 {
+            self.direction = Direction::Up;
+        }
+        if y > 0.0 {
+            self.direction = Direction::Down;
+        }
         if self.collision(&room, x, y) {
             self.collides = true;
         } else {
@@ -148,10 +160,18 @@ impl Mob for Player {
 
     fn update(&mut self, room: &Room) {
         let (mut xa, mut ya) = (0.0, 0.0);
-        if self.keyboard.borrow().up { ya -= self.speed ; }
-        if self.keyboard.borrow().down { ya += self.speed; }
-        if self.keyboard.borrow().left { xa -= self.speed }
-        if self.keyboard.borrow().right { xa += self.speed }
+        if self.keyboard.borrow().up {
+            ya -= self.speed;
+        }
+        if self.keyboard.borrow().down {
+            ya += self.speed;
+        }
+        if self.keyboard.borrow().left {
+            xa -= self.speed
+        }
+        if self.keyboard.borrow().right {
+            xa += self.speed
+        }
         let mut update_sprite = false;
         if xa != 0.0 {
             self.move_entity(xa, 0.0, room);
