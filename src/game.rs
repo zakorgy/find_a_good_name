@@ -1,4 +1,4 @@
-use super::entity::{Enemy, Mob, Player};
+use super::entity::{Enemy, Entity, Mob, Player};
 use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS};
 use super::input::{Key, KeyBoard};
 use super::level::Level;
@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 static EXIT_KEY: &'static Key = &Key::Escape;
+const PLAYER_INDEX: usize = 0;
 
 pub struct Game {
     width: u32,
@@ -92,6 +93,14 @@ impl Game {
         ));
         self.entities.push(enemy);
 
+        let enemy = Box::new(Enemy::new(
+            64f32,
+            72f32,
+            0.5,
+            AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
+        ));
+        self.entities.push(enemy);
+
         let mut last_time = Instant::now();
         let mut timer = Instant::now();
         let ns = 1_000_000_000.0_f64 / 60.0_f64;
@@ -135,6 +144,14 @@ impl Game {
             self.stop();
         }
 
+        let ref player = self.entities[0];
+        for (i, ref e) in self.entities[1..].iter().enumerate() {
+            if player.collides(&e.collider()) {
+                println!("#### Colliding with {}", i + 1);
+            } else {
+                println!("");
+            }
+        }
         self.level.update();
         for entity in self.entities.iter_mut() {
             Mob::update(entity.as_mut(), &self.level.current_room())
