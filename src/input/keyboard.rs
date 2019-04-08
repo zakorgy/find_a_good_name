@@ -42,4 +42,8 @@ impl KeyBoard {
     pub fn contains_key(&self, key: &Key) -> bool {
         self.keys.contains(&key)
     }
+
+    pub fn clear(&mut self) {
+        self.keys.clear();
+    }
 }

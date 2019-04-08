@@ -17,6 +17,5 @@ const SCALE: u32 = 6;
 
 fn main() {
     let mut game = game::Game::new(WIDTH, HEIGHT, SCALE);
-    game.start();
     game.run();
 }

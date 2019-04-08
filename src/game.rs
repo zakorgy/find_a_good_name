@@ -11,7 +11,18 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 static EXIT_KEY: &'static Key = &Key::Escape;
+static PAUSE_KEY: &'static Key = &Key::Space;
 const PLAYER_INDEX: usize = 0;
+
+#[derive(Debug)]
+enum GameState {
+    Start,
+    Running,
+    Pause,
+    LoadLevel,
+    LoadRoom,
+    End,
+}
 
 pub struct Game {
     width: u32,
@@ -19,7 +30,7 @@ pub struct Game {
     x_offset: i32,
     y_offset: i32,
     scale: u32,
-    running: bool,
+    state: GameState,
     pub keyboard: Rc<RefCell<KeyBoard>>,
     window: PistonWindow,
     screen: Screen,
@@ -48,58 +59,26 @@ impl Game {
         )
         .unwrap();
 
-        let level = Level::new(27);
-        let spawn_point = level.current_room().spawn_point();
-
-        let keyboard = Rc::new(RefCell::new(KeyBoard::new()));
-        let keyboard_player = Rc::clone(&keyboard);
-
         Game {
             width,
             height,
             x_offset: 0,
             y_offset: 0,
             scale,
-            running: false,
-            keyboard,
+            state: GameState::Start,
+            keyboard: Rc::new(RefCell::new(KeyBoard::new())),
             window,
             screen,
             texture,
-            level,
-            entities: vec![Box::new(Player::new(
-                spawn_point.0,
-                spawn_point.1,
-                0.7,
-                AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
-                keyboard_player,
-            ))],
+            level: Level::new(27),
+            entities: vec![],
         }
-    }
-
-    pub fn start(&mut self) {
-        self.running = true;
     }
 
     pub fn run(&mut self) {
         use piston_window::AdvancedWindow;
         use std::ops::Add;
         use std::time::{Duration, Instant};
-
-        let enemy = Box::new(Enemy::new(
-            32f32,
-            32f32,
-            0.5,
-            AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
-        ));
-        self.entities.push(enemy);
-
-        let enemy = Box::new(Enemy::new(
-            64f32,
-            72f32,
-            0.5,
-            AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
-        ));
-        self.entities.push(enemy);
 
         let mut last_time = Instant::now();
         let mut timer = Instant::now();
@@ -108,48 +87,98 @@ impl Game {
         let mut frames = 0_u32;
         let mut updates = 0_u32;
         while let Some(e) = self.window.next() {
-            if self.running {
-                self.keyboard.borrow_mut().update(&e);
-                delta += last_time.elapsed().subsec_nanos() as f64 / ns;
-                last_time = Instant::now();
-                while delta >= 1.0 {
-                    self.update(&e);
-                    updates += 1;
-                    delta -= 1.0;
-                }
-                self.render(&e);
-                frames += 1;
+            match self.state {
+                GameState::Start => {
+                    let spawn_point = self.level.current_room().spawn_point();
+                    let player = Box::new(Player::new(
+                        spawn_point.0,
+                        spawn_point.1,
+                        0.7,
+                        AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
+                        Rc::clone(&self.keyboard),
+                    ));
+                    self.entities.push(player);
 
-                if (timer.elapsed().as_secs() * 1000 + timer.elapsed().subsec_millis() as u64)
-                    > 1000
-                {
-                    timer = timer.add(Duration::from_millis(1000));
-                    self.window
-                        .set_title(format!("ATOMA | {} ups, {} frames", updates, frames));
-                    updates = 0;
-                    frames = 0;
+                    self.state = GameState::LoadRoom;
                 }
-            } else {
-                break;
+                GameState::LoadRoom => {
+                    let enemy = Box::new(Enemy::new(
+                        32f32,
+                        32f32,
+                        0.5,
+                        AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
+                    ));
+                    self.entities.push(enemy);
+
+                    let enemy = Box::new(Enemy::new(
+                        64f32,
+                        72f32,
+                        0.5,
+                        AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
+                    ));
+                    self.entities.push(enemy);
+                    self.state = GameState::Running;
+                }
+                GameState::Pause => {
+                    self.keyboard.borrow_mut().update(&e);
+                    if self.keyboard.borrow().contains_key(&PAUSE_KEY) {
+                        self.resume();
+                    }
+                }
+                GameState::Running => {
+                    self.keyboard.borrow_mut().update(&e);
+                    delta += last_time.elapsed().subsec_nanos() as f64 / ns;
+                    last_time = Instant::now();
+                    while delta >= 1.0 {
+                        self.update(&e);
+                        updates += 1;
+                        delta -= 1.0;
+                    }
+                    self.render(&e);
+                    frames += 1;
+
+                    if (timer.elapsed().as_secs() * 1000 + timer.elapsed().subsec_millis() as u64)
+                        > 1000
+                    {
+                        timer = timer.add(Duration::from_millis(1000));
+                        self.window
+                            .set_title(format!("ATOMA | {} ups, {} frames", updates, frames));
+                        updates = 0;
+                        frames = 0;
+                    }
+                },
+                GameState::End => break,
+                _ => {},
             }
         }
     }
 
-    pub fn stop(&mut self) {
-        self.running = false;
+    fn stop(&mut self) {
+        self.state = GameState::End;
+    }
+
+    fn pause(&mut self) {
+        self.state = GameState::Pause;
+        self.keyboard.borrow_mut().clear();
+    }
+
+    fn resume(&mut self) {
+        self.state = GameState::Running;
+        self.keyboard.borrow_mut().clear();
     }
 
     fn update<E: GenericEvent>(&mut self, _event: &E) {
         if self.keyboard.borrow().contains_key(&EXIT_KEY) {
             self.stop();
         }
+        if self.keyboard.borrow().contains_key(&PAUSE_KEY) {
+            self.pause();
+        }
 
         let ref player = self.entities[0];
         for (i, ref e) in self.entities[1..].iter().enumerate() {
             if player.collides(&e.collider()) {
                 println!("#### Colliding with {}", i + 1);
-            } else {
-                println!("");
             }
         }
         self.level.update();
