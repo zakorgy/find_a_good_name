@@ -1,4 +1,5 @@
-use super::entity::{Enemy, Entity, Mob, Player};
+use super::entity::{Enemy, Entity, EntityId, EntityManager, Player};
+use super::entity::{PLAYER_ID, FIRST_FREE_ID};
 use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS};
 use super::input::{Key, KeyBoard};
 use super::level::Level;
@@ -12,7 +13,6 @@ use std::rc::Rc;
 
 static EXIT_KEY: &'static Key = &Key::Escape;
 static PAUSE_KEY: &'static Key = &Key::Space;
-const PLAYER_INDEX: usize = 0;
 
 #[derive(Debug)]
 enum GameState {
@@ -36,7 +36,8 @@ pub struct Game {
     screen: Screen,
     texture: G2dTexture,
     level: Level,
-    entities: Vec<Box<dyn Mob>>,
+    entity_manager: EntityManager,
+    next_id: EntityId,
 }
 
 impl Game {
@@ -71,7 +72,8 @@ impl Game {
             screen,
             texture,
             level: Level::new(27),
-            entities: vec![],
+            entity_manager: EntityManager::new(),
+            next_id: FIRST_FREE_ID,
         }
     }
 
@@ -96,8 +98,9 @@ impl Game {
                         0.7,
                         AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
                         Rc::clone(&self.keyboard),
+                        PLAYER_ID,
                     ));
-                    self.entities.push(player);
+                    self.entity_manager.add_entity(player);
 
                     self.state = GameState::LoadRoom;
                 }
@@ -107,16 +110,18 @@ impl Game {
                         32f32,
                         0.5,
                         AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
+                        self.next_id(),
                     ));
-                    self.entities.push(enemy);
+                    self.entity_manager.add_entity(enemy);
 
                     let enemy = Box::new(Enemy::new(
                         64f32,
                         72f32,
                         0.5,
                         AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
+                        self.next_id(),
                     ));
-                    self.entities.push(enemy);
+                    self.entity_manager.add_entity(enemy);
                     self.state = GameState::Running;
                 }
                 GameState::Pause => {
@@ -153,6 +158,11 @@ impl Game {
         }
     }
 
+    fn next_id(&mut self) -> EntityId {
+        let id = self.next_id;
+        self.next_id += 1;
+        id
+    }
     fn stop(&mut self) {
         self.state = GameState::End;
     }
@@ -175,21 +185,14 @@ impl Game {
             self.pause();
         }
 
-        let ref player = self.entities[0];
-        for (i, ref e) in self.entities[1..].iter().enumerate() {
-            if player.collides(&e.collider()) {
-                println!("#### Colliding with {}", i + 1);
-            }
-        }
+        self.entity_manager.check_collisions();
         self.level.update();
-        for entity in self.entities.iter_mut() {
-            Mob::update(entity.as_mut(), &self.level.current_room())
-        }
+        self.entity_manager.update(&self.level.current_room());
         self.update_offsets();
     }
 
     fn update_offsets(&mut self) {
-        let (x, y) = self.entities[0].absolute_pos();
+        let (x, y) = self.entity_manager.get_entity_from_id(&PLAYER_ID).absolute_pos();
         let (lvl_width, lvl_height) = self.level.dimensions();
 
         self.x_offset = {
@@ -219,9 +222,7 @@ impl Game {
         self.screen.clear();
         self.level
             .render(self.x_offset, self.y_offset, &mut self.screen);
-        for entity in self.entities.iter() {
-            entity.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
-        }
+        self.entity_manager.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
         self.screen.render_map(self.level.map_info());
         self.texture
             .update(&mut self.window.encoder, &self.screen.canvas)

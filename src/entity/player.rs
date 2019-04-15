@@ -2,7 +2,7 @@ use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Room;
-use super::entity::{Collider, Direction, Entity, Mob};
+use super::entity::{Collider, Direction, Entity, EntityId};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -15,6 +15,7 @@ pub struct Player {
     sprite: AnimatedSprite,
     collides: bool,
     flipped: bool,
+    id: EntityId,
     keyboard: Rc<RefCell<KeyBoard>>,
 }
 
@@ -25,6 +26,7 @@ impl Player {
         speed: f32,
         sprite: AnimatedSprite,
         keyboard: Rc<RefCell<KeyBoard>>,
+        id: EntityId,
     ) -> Player {
         Player {
             x,
@@ -35,6 +37,7 @@ impl Player {
             sprite,
             collides: false,
             flipped: false,
+            id,
             keyboard,
         }
     }
@@ -56,7 +59,58 @@ impl Player {
 }
 
 impl Entity for Player {
-    fn update(&mut self) {}
+    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {
+        if x < 0.0 {
+            self.direction = Direction::Left;
+            self.flipped = true;
+        }
+        if x > 0.0 {
+            self.direction = Direction::Right;
+            self.flipped = false;
+        }
+        if y < 0.0 {
+            self.direction = Direction::Up;
+        }
+        if y > 0.0 {
+            self.direction = Direction::Down;
+        }
+        if !self.collision(&room, x, y) {
+            self.x += x;
+            self.y += y;
+        }
+    }
+
+    fn update(&mut self, room: &Room) {
+        let (mut xa, mut ya) = (0.0, 0.0);
+        if self.keyboard.borrow().up {
+            ya -= self.speed;
+        }
+        if self.keyboard.borrow().down {
+            ya += self.speed;
+        }
+        if self.keyboard.borrow().left {
+            xa -= self.speed
+        }
+        if self.keyboard.borrow().right {
+            xa += self.speed
+        }
+        let mut update_sprite = false;
+        if xa != 0.0 {
+            self.move_entity(xa, 0.0, room);
+            update_sprite = true;
+        }
+
+        if ya != 0.0 {
+            self.move_entity(0.0, ya, room);
+            update_sprite = true;
+        }
+
+        if update_sprite {
+            self.sprite.update();
+        } else {
+            self.sprite.reset();
+        }
+    }
 
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
         let pixels = self.sprite.view();
@@ -123,59 +177,8 @@ impl Entity for Player {
         }
         false
     }
-}
 
-impl Mob for Player {
-    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {
-        if x < 0.0 {
-            self.direction = Direction::Left;
-            self.flipped = true;
-        }
-        if x > 0.0 {
-            self.direction = Direction::Right;
-            self.flipped = false;
-        }
-        if y < 0.0 {
-            self.direction = Direction::Up;
-        }
-        if y > 0.0 {
-            self.direction = Direction::Down;
-        }
-        if !self.collision(&room, x, y) {
-            self.x += x;
-            self.y += y;
-        }
-    }
-
-    fn update(&mut self, room: &Room) {
-        let (mut xa, mut ya) = (0.0, 0.0);
-        if self.keyboard.borrow().up {
-            ya -= self.speed;
-        }
-        if self.keyboard.borrow().down {
-            ya += self.speed;
-        }
-        if self.keyboard.borrow().left {
-            xa -= self.speed
-        }
-        if self.keyboard.borrow().right {
-            xa += self.speed
-        }
-        let mut update_sprite = false;
-        if xa != 0.0 {
-            self.move_entity(xa, 0.0, room);
-            update_sprite = true;
-        }
-
-        if ya != 0.0 {
-            self.move_entity(0.0, ya, room);
-            update_sprite = true;
-        }
-
-        if update_sprite {
-            self.sprite.update();
-        } else {
-            self.sprite.reset();
-        }
+    fn id(&self) -> EntityId {
+        self.id
     }
 }

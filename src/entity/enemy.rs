@@ -1,7 +1,7 @@
 use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::level::Room;
-use super::entity::{Collider, Direction, Entity, Mob};
+use super::entity::{Collider, Direction, Entity, EntityId};
 
 pub struct Enemy {
     x: f32,
@@ -12,10 +12,11 @@ pub struct Enemy {
     sprite: AnimatedSprite,
     collides: bool,
     flipped: bool,
+    id: EntityId,
 }
 
 impl Enemy {
-    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite) -> Enemy {
+    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite, id: EntityId) -> Enemy {
         Enemy {
             x,
             y,
@@ -25,12 +26,17 @@ impl Enemy {
             sprite,
             collides: false,
             flipped: false,
+            id,
         }
     }
 }
 
 impl Entity for Enemy {
-    fn update(&mut self) {}
+    fn update(&mut self, room: &Room) {
+        self.sprite.update()
+    }
+
+    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {}
 
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
         let pixels = self.sprite.view();
@@ -90,12 +96,8 @@ impl Entity for Enemy {
         let sprite_size = self.sprite.size() as f32;
         Some(Collider::new(self.x, self.y, sprite_size, sprite_size))
     }
-}
 
-impl Mob for Enemy {
-    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {}
-
-    fn update(&mut self, room: &Room) {
-        self.sprite.update()
+    fn id(&self) -> EntityId {
+        self.id
     }
 }
