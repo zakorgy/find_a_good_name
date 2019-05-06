@@ -63,7 +63,7 @@ pub struct RoomBuilder {
     room_type: RoomType,
     grid_pos: (i32, i32),
     path: PathBuf,
-    id: RoomId,
+    pub id: RoomId,
 }
 
 impl RoomBuilder {
@@ -113,6 +113,7 @@ impl RoomBuilder {
         };
         let (width, height) = image.dimensions();
         let mut tiles = Vec::new();
+        let mut possible_door_positions = Vec::new();
         for y in 0..height {
             for x in 0..width {
                 match image.get_pixel(x, y) {
@@ -121,7 +122,10 @@ impl RoomBuilder {
                     } => tiles.push(Tiles::Wall(rand::thread_rng().gen_range(0_usize, 3))),
                     image::Rgba {
                         data: [0, 0, 255, 255],
-                    } => tiles.push(Tiles::Door),
+                    } => {
+                        possible_door_positions.push((x,y));
+                        tiles.push(Tiles::WallTop(rand::thread_rng().gen_range(0_usize, 3)));
+                    }
                     image::Rgba {
                         data: [0, 255, 255, 255],
                     } => tiles.push(Tiles::WallTop(rand::thread_rng().gen_range(0_usize, 3))),
@@ -132,6 +136,64 @@ impl RoomBuilder {
                         data: [255, 255, 0, 255],
                     } => tiles.push(Tiles::SpawnPoint(rand::thread_rng().gen_range(0_usize, 2))),
                     _ => tiles.push(Tiles::Empty),
+                }
+            }
+        }
+
+        for neighbour in self.neighbours.iter() {
+            match neighbour {
+                Neighbour::Invalid => continue,
+                Neighbour::North(id) => {
+                    assert!(possible_door_positions.len() > 0);
+                    let mut north_pos = possible_door_positions[0];
+                    let mut idx = 0;
+                    for (i, pos) in possible_door_positions.iter().enumerate() {
+                        if pos.1 < north_pos.1 {
+                            north_pos = *pos;
+                            idx = i;
+                        }
+                    }
+                    possible_door_positions.remove(idx);
+                    tiles[(north_pos.1 * width + north_pos.0) as usize] = Tiles::Door;
+                }
+                Neighbour::South(id) => {
+                    assert!(possible_door_positions.len() > 0);
+                    let mut south_pos = possible_door_positions[0];
+                    let mut idx = 0;
+                    for (i, pos) in possible_door_positions.iter().enumerate() {
+                        if pos.1 > south_pos.1 {
+                            south_pos = *pos;
+                            idx = i;
+                        }
+                    }
+                    possible_door_positions.remove(idx);
+                    tiles[(south_pos.1 * width + south_pos.0) as usize] = Tiles::Door;
+                }
+                Neighbour::East(id) => {
+                    assert!(possible_door_positions.len() > 0);
+                    let mut east_pos = possible_door_positions[0];
+                    let mut idx = 0;
+                    for (i, pos) in possible_door_positions.iter().enumerate() {
+                        if pos.0 > east_pos.0 {
+                            east_pos = *pos;
+                            idx = i;
+                        }
+                    }
+                    possible_door_positions.remove(idx);
+                    tiles[(east_pos.1 * width + east_pos.0) as usize] = Tiles::Door;
+                }
+                Neighbour::West(id) => {
+                    assert!(possible_door_positions.len() > 0);
+                    let mut west_pos = possible_door_positions[0];
+                    let mut idx = 0;
+                    for (i, pos) in possible_door_positions.iter().enumerate() {
+                        if pos.0 < west_pos.0 {
+                            west_pos = *pos;
+                            idx = i;
+                        }
+                    }
+                    possible_door_positions.remove(idx);
+                    tiles[(west_pos.1 * width + west_pos.0) as usize] = Tiles::Door;
                 }
             }
         }

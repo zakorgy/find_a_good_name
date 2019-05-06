@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 struct LevelBuilder {
     rooms: [[Option<RoomBuilder>; 9]; 9],
-    taken_positions: Vec<(i32, i32)>,
+    taken_positions: HashMap<(i32, i32), RoomId>,
     possible_positions: Vec<(i32, i32)>,
     number_of_rooms: usize,
     next_id: u8,
@@ -29,7 +29,7 @@ impl LevelBuilder {
         let start_pos = (4, 4);
         let mut builder = LevelBuilder {
             rooms: Default::default(),
-            taken_positions: vec![start_pos],
+            taken_positions: std::iter::once((start_pos, 0)).collect(),
             possible_positions: vec![],
             number_of_rooms: 15,
             next_id: 1,
@@ -114,15 +114,16 @@ impl LevelBuilder {
             }
 
             // add new room to rooms
+            let id = self.next_id;
             let room = RoomBuilder::new()
                 .with_path(&path)
                 .with_grid_pos(new_pos)
-                .with_id(self.next_id);
+                .with_id(id);
             self.next_id += 1;
             self.rooms[new_pos.0 as usize][new_pos.1 as usize] = Some(room);
 
             // update taken positions
-            self.taken_positions.push(new_pos);
+            self.taken_positions.insert(new_pos, id);
 
             // update number of rooms
             self.number_of_rooms += 1;
@@ -140,16 +141,16 @@ impl LevelBuilder {
 
     fn neighbour_count(&self, pos: (i32, i32)) -> usize {
         let mut neighbours = 0;
-        if self.taken_positions.contains(&(pos.0 + 1, pos.1)) {
+        if self.taken_positions.contains_key(&(pos.0 + 1, pos.1)) {
             neighbours += 1;
         }
-        if self.taken_positions.contains(&(pos.0 - 1, pos.1)) {
+        if self.taken_positions.contains_key(&(pos.0 - 1, pos.1)) {
             neighbours += 1;
         }
-        if self.taken_positions.contains(&(pos.0, pos.1 + 1)) {
+        if self.taken_positions.contains_key(&(pos.0, pos.1 + 1)) {
             neighbours += 1;
         }
-        if self.taken_positions.contains(&(pos.0, pos.1 - 1)) {
+        if self.taken_positions.contains_key(&(pos.0, pos.1 - 1)) {
             neighbours += 1;
         }
         neighbours
@@ -159,19 +160,19 @@ impl LevelBuilder {
         for x in 0..9 {
             for y in 0..9 {
                 if let Some(ref mut room) = self.rooms[x][y] {
-                    let x = x as i32;
-                    let y = y as i32;
-                    if self.taken_positions.contains(&(x - 1, y)) {
-                        room.add_neighbour(Neighbour::West(0));
+                    let xi = x as i32;
+                    let yi = y as i32;
+                    if let Some(id) = self.taken_positions.get(&(xi - 1, yi)) {
+                        room.add_neighbour(Neighbour::West(*id));
                     }
-                    if self.taken_positions.contains(&(x + 1, y)) {
-                        room.add_neighbour(Neighbour::East(0));
+                    if let Some(id) = self.taken_positions.get(&(xi + 1, yi)) {
+                        room.add_neighbour(Neighbour::East(*id));
                     }
-                    if self.taken_positions.contains(&(x, y - 1)) {
-                        room.add_neighbour(Neighbour::North(0));
+                    if let Some(id) = self.taken_positions.get(&(xi, yi - 1)) {
+                        room.add_neighbour(Neighbour::North(*id));
                     }
-                    if self.taken_positions.contains(&(x, y + 1)) {
-                        room.add_neighbour(Neighbour::South(0));
+                    if let Some(id) = self.taken_positions.get(&(xi, yi + 1)) {
+                        room.add_neighbour(Neighbour::South(*id));
                     }
                 }
             }
