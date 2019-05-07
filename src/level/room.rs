@@ -140,6 +140,7 @@ impl RoomBuilder {
             }
         }
 
+        let mut load_info = LoadInfo::default();
         for neighbour in self.neighbours.iter() {
             match neighbour {
                 Neighbour::Invalid => continue,
@@ -153,6 +154,8 @@ impl RoomBuilder {
                             idx = i;
                         }
                     }
+                    let mut first_empty = load_info.doors.iter_mut().find(|i| i.is_none()).unwrap();
+                    first_empty = &mut Some((north_pos, *id));
                     possible_door_positions.remove(idx);
                     tiles[(north_pos.1 * width + north_pos.0) as usize] = Tiles::Door;
                 }
@@ -166,6 +169,8 @@ impl RoomBuilder {
                             idx = i;
                         }
                     }
+                    let mut first_empty = load_info.doors.iter_mut().find(|i| i.is_none()).unwrap();
+                    first_empty = &mut Some((south_pos, *id));
                     possible_door_positions.remove(idx);
                     tiles[(south_pos.1 * width + south_pos.0) as usize] = Tiles::Door;
                 }
@@ -179,6 +184,8 @@ impl RoomBuilder {
                             idx = i;
                         }
                     }
+                    let mut first_empty = load_info.doors.iter_mut().find(|i| i.is_none()).unwrap();
+                    first_empty = &mut Some((east_pos, *id));
                     possible_door_positions.remove(idx);
                     tiles[(east_pos.1 * width + east_pos.0) as usize] = Tiles::Door;
                 }
@@ -192,6 +199,8 @@ impl RoomBuilder {
                             idx = i;
                         }
                     }
+                    let mut first_empty = load_info.doors.iter_mut().find(|i| i.is_none()).unwrap();
+                    first_empty = &mut Some((west_pos, *id));
                     possible_door_positions.remove(idx);
                     tiles[(west_pos.1 * width + west_pos.0) as usize] = Tiles::Door;
                 }
@@ -206,9 +215,15 @@ impl RoomBuilder {
                 tiles,
                 room_type: self.room_type,
                 grid_pos: self.grid_pos,
+                load_info,
             },
         )
     }
+}
+
+#[derive(Debug, Copy, Clone, Default)]
+struct LoadInfo {
+    doors: [Option<((u32, u32), RoomId)>; 4],
 }
 
 pub struct Room {
@@ -218,6 +233,7 @@ pub struct Room {
     pub tiles: Vec<Tiles>,
     pub room_type: RoomType,
     pub grid_pos: (i32, i32),
+    load_info: LoadInfo,
 }
 
 impl Room {

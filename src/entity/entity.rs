@@ -80,6 +80,45 @@ impl Collider {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub struct Door {
+    collider: Collider,
+    id: EntityId,
+    removed: bool,
+}
+
+impl Entity for Door {
+    fn update(&mut self, room: &Room) {}
+
+    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {}
+
+    fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {}
+
+    fn remove(&mut self) {
+        self.removed = true;
+    }
+
+    fn is_removed(&self) -> bool {
+        self.removed
+    }
+
+    fn relative_pos(&self, x_offset: f32, y_offset: f32) -> (i32, i32) {
+        ((self.collider.x - x_offset) as i32, (self.collider.y - y_offset) as i32)
+    }
+
+    fn absolute_pos(&self) -> (i32, i32) {
+        (self.collider.x as i32, self.collider.y as i32)
+    }
+
+    fn collider(&self) -> Option<Collider> {
+        Some(self.collider)
+    }
+
+    fn id(&self) -> EntityId {
+        self.id
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct Telegram {
     sender: EntityId,
     receiver: EntityId,
