@@ -2,7 +2,7 @@ use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Room;
-use super::entity::{Collider, Direction, Entity, EntityId};
+use super::entity::{Collider, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -180,5 +180,14 @@ impl Entity for Player {
 
     fn id(&self) -> EntityId {
         self.id
+    }
+
+    fn handle_message(&mut self, message: Telegram, dispatcher: &mut MessageDispatcher) {
+        let Telegram { sender, receiver, message } = message;
+    }
+
+    fn set_pos(&mut self, x: f32, y: f32) {
+        self.x = x;
+        self.y = y;
     }
 }

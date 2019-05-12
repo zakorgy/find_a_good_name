@@ -195,6 +195,14 @@ impl Level {
         &self.rooms[&self.current]
     }
 
+    pub fn current_room_id(&self) -> RoomId {
+        self.current
+    }
+
+    pub fn set_current_room(&mut self, id: RoomId) {
+        self.current = id;
+    }
+
     pub fn update(&mut self) {}
 
     pub fn render(&self, x_scroll: i32, y_scroll: i32, screen: &mut Screen) {

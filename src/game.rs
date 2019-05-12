@@ -1,8 +1,8 @@
-use super::entity::{Enemy, Entity, EntityId, EntityManager, Player};
-use super::entity::{PLAYER_ID, FIRST_FREE_ID};
+use super::entity::{Door, Enemy, Entity, EntityId, EntityManager, MessageDispatcher, Player, Telegram, Message};
+use super::entity::PLAYER_ID;
 use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS};
 use super::input::{Key, KeyBoard};
-use super::level::Level;
+use super::level::{Level, RoomId};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
 use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
@@ -20,7 +20,7 @@ enum GameState {
     Running,
     Pause,
     LoadLevel,
-    LoadRoom,
+    LoadRoom(RoomId),
     End,
 }
 
@@ -37,7 +37,7 @@ pub struct Game {
     texture: G2dTexture,
     level: Level,
     entity_manager: EntityManager,
-    next_id: EntityId,
+    dispatcher: MessageDispatcher,
 }
 
 impl Game {
@@ -73,7 +73,7 @@ impl Game {
             texture,
             level: Level::new(27),
             entity_manager: EntityManager::new(),
-            next_id: FIRST_FREE_ID,
+            dispatcher: MessageDispatcher::new(),
         }
     }
 
@@ -91,10 +91,9 @@ impl Game {
         while let Some(e) = self.window.next() {
             match self.state {
                 GameState::Start => {
-                    let spawn_point = self.level.current_room().spawn_point();
                     let player = Box::new(Player::new(
-                        spawn_point.0,
-                        spawn_point.1,
+                        0.0,
+                        0.0,
                         0.7,
                         AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
                         Rc::clone(&self.keyboard),
@@ -102,15 +101,47 @@ impl Game {
                     ));
                     self.entity_manager.add_entity(player);
 
-                    self.state = GameState::LoadRoom;
+                    self.state = GameState::LoadRoom(0);
                 }
-                GameState::LoadRoom => {
+                GameState::LoadRoom(id) => {
+                    let prev_id = self.level.current_room_id();
+                    self.level.set_current_room(id);
+                    self.entity_manager.clean_up();
+                    let midle_point = self.level.current_room().spawn_point();
+                    let spawn_point = if id == 0 {
+                        midle_point
+                    } else {
+                        let pos = self.level.current_room().load_info.doors.iter().find(|i| {
+                            if let Some(((pos), room_id)) = i {
+                                if *room_id == prev_id {
+                                    return true;
+                                }
+                            }
+                            false
+                        }).unwrap().unwrap().0;
+                        let mut pos = ((pos.0 * 8) as f32, (pos.1 * 8 ) as f32);
+                        if (midle_point.0 - pos.0) > 0.0 {
+                            pos.0 += 6.0;
+                        } else if (midle_point.0 - pos.0) < 0.0 {
+                            pos.0 -= 6.0;
+                        }
+
+                        if (midle_point.1 - pos.1) > 0.0 {
+                            pos.1 += 6.0;
+                        } else if (midle_point.1 - pos.1) < 0.0 {
+                            pos.1 -= 6.0;
+                        }
+                        pos
+                    };
+
+                    self.entity_manager.get_entity_mut(&PLAYER_ID).set_pos(spawn_point.0, spawn_point.1);
+                    self.x_offset = 0;
+                    self.y_offset = 0;
                     let enemy = Box::new(Enemy::new(
                         32f32,
                         32f32,
                         0.5,
                         AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
-                        self.next_id(),
                     ));
                     self.entity_manager.add_entity(enemy);
 
@@ -119,9 +150,9 @@ impl Game {
                         72f32,
                         0.5,
                         AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
-                        self.next_id(),
                     ));
                     self.entity_manager.add_entity(enemy);
+                    self.load_room();
                     self.state = GameState::Running;
                 }
                 GameState::Pause => {
@@ -158,11 +189,16 @@ impl Game {
         }
     }
 
-    fn next_id(&mut self) -> EntityId {
-        let id = self.next_id;
-        self.next_id += 1;
-        id
+    fn load_room(&mut self) {
+        let load_info = self.level.current_room().load_info;
+        for door_info in load_info.doors.iter() {
+            if let Some(info) = door_info {
+                let door: Door = info.into();
+                self.entity_manager.add_entity(Box::new(door));
+            }
+        }
     }
+
     fn stop(&mut self) {
         self.state = GameState::End;
     }
@@ -185,14 +221,25 @@ impl Game {
             self.pause();
         }
 
-        self.entity_manager.check_collisions();
+        while let Some(Telegram {sender, receiver, message}) = self.dispatcher.poll_game_message() {
+            match message {
+                Message::LoadRoom(id) => {
+                    self.state = GameState::LoadRoom(id);
+                    return;
+                }
+                _ => {}
+            }
+        }
+
+        self.entity_manager.check_collisions(&mut self.dispatcher);
+        self.dispatcher.dispatch_messages(&mut self.entity_manager);
         self.level.update();
         self.entity_manager.update(&self.level.current_room());
         self.update_offsets();
     }
 
     fn update_offsets(&mut self) {
-        let (x, y) = self.entity_manager.get_entity_from_id(&PLAYER_ID).absolute_pos();
+        let (x, y) = self.entity_manager.get_entity_mut(&PLAYER_ID).absolute_pos();
         let (lvl_width, lvl_height) = self.level.dimensions();
 
         self.x_offset = {

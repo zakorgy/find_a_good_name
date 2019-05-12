@@ -1,16 +1,17 @@
 use super::super::graphics::Screen;
-use super::super::level::Room;
+use super::super::level::{Room, RoomId};
 
 use std::boxed::Box;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 pub type EntityId = u32;
 
 
-pub const GAME_ID: EntityId = 0;
-pub const PLAYER_ID: EntityId = 1;
-pub const ENTITY_MANAGER_ID: EntityId = 2;
-pub const FIRST_FREE_ID: EntityId = 10;
+pub const INVALID_ID: EntityId = 0;
+pub const GAME_ID: EntityId = 1;
+pub const PLAYER_ID: EntityId = 2;
+pub const ENTITY_MANAGER_ID: EntityId = 3;
+const FIRST_FREE_ID: EntityId = 10;
 
 
 
@@ -20,6 +21,7 @@ pub trait Entity {
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32);
     fn remove(&mut self);
     fn is_removed(&self) -> bool;
+    fn set_pos(&mut self, x: f32, y: f32) {}
     fn relative_pos(&self, x_offset: f32, y_offset: f32) -> (i32, i32);
     fn absolute_pos(&self) -> (i32, i32);
     fn collider(&self) -> Option<Collider> {
@@ -29,8 +31,9 @@ pub trait Entity {
         false
     }
     fn id(&self) -> EntityId;
+    fn set_id(&mut self, id: EntityId) {}
     fn handle_message(&mut self, message: Telegram, dispatcher: &mut MessageDispatcher) {}
-    fn send_message(&self, message: Telegram, receiver: EntityId, dispatcher: &mut MessageDispatcher) {}
+    fn send_message(&self, message: Message, receiver: EntityId, dispatcher: &mut MessageDispatcher) {}
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -81,9 +84,21 @@ impl Collider {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Door {
-    collider: Collider,
+    pub collider: Collider,
     id: EntityId,
-    removed: bool,
+    pub room: RoomId,
+    pub removed: bool,
+}
+
+impl<'a> From<&'a ((u32, u32), RoomId)> for Door {
+    fn from(info: &((u32, u32), RoomId)) -> Self {
+        Door {
+            collider: Collider::new(((info.0).0 * 8) as f32 + 4.0, ((info.0).1 * 8) as f32 + 4.0, 1.0, 1.0),
+            id: INVALID_ID,
+            room: info.1,
+            removed: false,
+        }
+    }
 }
 
 impl Entity for Door {
@@ -116,37 +131,68 @@ impl Entity for Door {
     fn id(&self) -> EntityId {
         self.id
     }
+
+    fn set_id(&mut self, id: EntityId) {
+        self.id = id;
+    }
+
+    fn handle_message(&mut self, message: Telegram, dispatcher: &mut MessageDispatcher) {
+        let Telegram { sender, receiver, message } = message;
+        match message {
+            Message::Collides => {
+                if sender == PLAYER_ID {
+                    self.send_message(Message::LoadRoom(self.room), GAME_ID, dispatcher);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn send_message(&self, message: Message, receiver: EntityId, dispatcher: &mut MessageDispatcher) {
+        dispatcher.queue_message(self.id(), receiver, message);
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct Telegram {
-    sender: EntityId,
-    receiver: EntityId,
-    message: Message,
+    pub sender: EntityId,
+    pub receiver: EntityId,
+    pub message: Message,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum Message {
-    LoadRoom,
+    LoadRoom(RoomId),
+    Collides,
 }
 
 pub struct EntityManager {
-    entities: HashMap<EntityId, Box<dyn Entity>>,    
+    entities: HashMap<EntityId, Box<dyn Entity>>,
+    next_id: EntityId,
 }
 
 impl EntityManager {
     pub fn new() -> Self {
         EntityManager {
             entities: HashMap::with_capacity(1),
+            next_id: FIRST_FREE_ID,
         }
     }
 
-    pub fn add_entity(&mut self, entity: Box<dyn Entity>) {
-        self.entities.insert(entity.id(), entity);
+    pub fn add_entity(&mut self, mut entity: Box<dyn Entity>) {
+        let id = if entity.id() == INVALID_ID {
+            let id = self.next_id();
+            entity.set_id(id);
+            id
+        } else {
+            entity.id()
+        };
+        self.entities.insert(id, entity);
     }
 
-    pub fn remove_entity(&mut self, id: &EntityId) {
-        self.entities.remove(id);
+    // TODO: this is just a temporary solution
+    pub fn clean_up(&mut self) {
+        self.entities.retain(|&k, _| k == PLAYER_ID);
     }
 
     pub fn update(&mut self, room: &Room) {
@@ -161,37 +207,71 @@ impl EntityManager {
         }
     }
 
-    pub fn check_collisions(&mut self) {
-        let ref player = self.entities[&PLAYER_ID];
+    pub fn check_collisions(&mut self, dispatcher: &mut MessageDispatcher) {
+        let mut colliding_entites = Vec::new();
+        let player = self.entities.get(&PLAYER_ID).unwrap();
         for (k, ref e) in self.entities.iter() {
             if k != &PLAYER_ID && player.collides(&e.collider()) {
-                println!("#### Colliding with {}", k);
+                colliding_entites.push(*k);
             }
+        }
+        for id in colliding_entites {
+            dispatcher.queue_message(PLAYER_ID, id, Message::Collides);
+            dispatcher.queue_message(id, PLAYER_ID, Message::Collides);
         }
     }
 
-    pub fn get_entity_from_id(&mut self, id: &EntityId) -> &mut Box<Entity> {
+    pub fn get_entity_mut(&mut self, id: &EntityId) -> &mut Box<Entity> {
         self.entities.get_mut(id).unwrap()
+    }
+
+    fn next_id(&mut self) -> EntityId {
+        let id = self.next_id;
+        self.next_id += 1;
+        id
     }
 }
 
 pub struct MessageDispatcher {
-    //messages: Vec<Telegram>,
+    messages_to_game: VecDeque<Telegram>,
+    messages: VecDeque<Telegram>,
 }
 
 impl MessageDispatcher {
-    fn discharge(&mut self, entity: &mut Box<Entity>, message: Telegram) {
+    pub fn new() -> Self {
+        MessageDispatcher {
+            messages_to_game : VecDeque::new(),
+            messages : VecDeque::new(),
+        }
+    }
+
+    pub fn poll_game_message(&mut self) -> Option<Telegram> {
+        self.messages_to_game.pop_front()
+    }
+
+    fn discharge(&mut self, manager: &mut EntityManager, message: Telegram) {
+        let ref mut entity = manager.get_entity_mut(&message.receiver);
         entity.handle_message(message, self);
     }
 
-    pub fn dispatch_message(&mut self, entity_manager: &mut EntityManager, sender: EntityId, receiver: EntityId, message: Message) {
-        let message = Telegram {
+    pub fn queue_message(&mut self, sender: EntityId, receiver: EntityId, message: Message) {
+        let telegram = Telegram {
             sender,
             receiver,
             message,
         };
-        let ref mut entity = entity_manager.get_entity_from_id(&receiver);
-        self.discharge(entity, message);
 
+        if receiver == GAME_ID {
+            self.messages_to_game.push_back(telegram);
+            return;
+        } else {
+            self.messages.push_back(telegram);
+        }
+    }
+
+    pub fn dispatch_messages(&mut self, manager: &mut EntityManager) {
+        while let Some(message) = self.messages.pop_front() {
+            self.discharge(manager, message)
+        }
     }
 }

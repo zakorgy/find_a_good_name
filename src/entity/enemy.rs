@@ -1,7 +1,7 @@
 use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::level::Room;
-use super::entity::{Collider, Direction, Entity, EntityId};
+use super::entity::{Collider, Direction, Entity, EntityId, INVALID_ID};
 
 pub struct Enemy {
     x: f32,
@@ -16,7 +16,7 @@ pub struct Enemy {
 }
 
 impl Enemy {
-    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite, id: EntityId) -> Enemy {
+    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite) -> Enemy {
         Enemy {
             x,
             y,
@@ -26,7 +26,7 @@ impl Enemy {
             sprite,
             collides: false,
             flipped: false,
-            id,
+            id: INVALID_ID,
         }
     }
 }
