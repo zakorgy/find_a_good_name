@@ -12,6 +12,7 @@ pub const GAME_ID: EntityId = 1;
 pub const PLAYER_ID: EntityId = 2;
 pub const ENTITY_MANAGER_ID: EntityId = 3;
 const FIRST_FREE_ID: EntityId = 10;
+const EPSILON: f32 = 0.5;
 
 
 
@@ -63,10 +64,10 @@ impl Collider {
     }
 
     pub fn intersects(&self, other: &Collider) -> bool {
-        let l1 = (self.x, self.y);
-        let r1 = (self.x + self.width, self.y + self.height);
-        let l2 = (other.x, other.y);
-        let r2 = (other.x + other.width, other.y + other.height);
+        let l1 = (self.x + EPSILON, self.y + EPSILON);
+        let r1 = (self.x + self.width - EPSILON , self.y + self.height - EPSILON);
+        let l2 = (other.x + EPSILON, other.y + EPSILON);
+        let r2 = (other.x + other.width - EPSILON, other.y + other.height - EPSILON);
 
         // If one rectangle is on left side of other
         if (l1.0 >= r2.0 || l2.0 >= r1.0) {
@@ -79,6 +80,10 @@ impl Collider {
         }
 
         true
+    }
+
+    pub fn top_left(&self) -> (f32, f32) {
+        (self.x, self.y)
     }
 }
 
@@ -209,13 +214,30 @@ impl EntityManager {
 
     pub fn check_collisions(&mut self, dispatcher: &mut MessageDispatcher) {
         let mut colliding_entites = Vec::new();
-        let player = self.entities.get(&PLAYER_ID).unwrap();
-        for (k, ref e) in self.entities.iter() {
-            if k != &PLAYER_ID && player.collides(&e.collider()) {
-                colliding_entites.push(*k);
+        {
+            let player = self.entities.get(&PLAYER_ID).unwrap();
+            for (k, ref e) in self.entities.iter() {
+                if k != &PLAYER_ID && player.collides(&e.collider()) {
+                    colliding_entites.push((*k, e.collider()));
+                }
             }
         }
-        for id in colliding_entites {
+        let mut player = self.entities.get_mut(&PLAYER_ID).unwrap();
+        for (id, collider) in colliding_entites {
+            if let Some((enemy_x, enemy_y)) = collider.and_then(|c| Some(c.top_left())) {
+                let (player_x, player_y) = player.collider().and_then(|c| Some(c.top_left())).unwrap();
+                let x = (player_x - enemy_x);
+                let y = (player_y - enemy_y);
+                let x_dir = x.signum();
+                let y_dir = y.signum();
+                if x.abs() >= y.abs() {
+                    let dist = 8.0 - x.abs() + EPSILON;
+                    player.set_pos(player_x + x_dir * dist, player_y);
+                } else {
+                    let dist = 8.0 - y.abs() + EPSILON;
+                    player.set_pos(player_x , player_y + y_dir * dist);
+                }
+            }
             dispatcher.queue_message(PLAYER_ID, id, Message::Collides);
             dispatcher.queue_message(id, PLAYER_ID, Message::Collides);
         }
