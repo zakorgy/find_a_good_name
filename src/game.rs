@@ -20,7 +20,7 @@ enum GameState {
     Running,
     Pause,
     LoadLevel,
-    LoadRoom(RoomId),
+    LoadRoom(RoomId, bool),
     End,
 }
 
@@ -101,14 +101,14 @@ impl Game {
                     ));
                     self.entity_manager.add_entity(player);
 
-                    self.state = GameState::LoadRoom(0);
+                    self.state = GameState::LoadRoom(0, true);
                 }
-                GameState::LoadRoom(id) => {
+                GameState::LoadRoom(id, game_start) => {
                     let prev_id = self.level.current_room_id();
                     self.level.set_current_room(id);
                     self.entity_manager.clean_up();
                     let midle_point = self.level.current_room().spawn_point();
-                    let spawn_point = if id == 0 {
+                    let spawn_point = if game_start {
                         midle_point
                     } else {
                         let pos = self.level.current_room().load_info.doors.iter().find(|i| {
@@ -224,7 +224,7 @@ impl Game {
         while let Some(Telegram {sender, receiver, message}) = self.dispatcher.poll_game_message() {
             match message {
                 Message::LoadRoom(id) => {
-                    self.state = GameState::LoadRoom(id);
+                    self.state = GameState::LoadRoom(id, false);
                     return;
                 }
                 _ => {}
