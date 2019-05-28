@@ -28,7 +28,10 @@ pub trait Entity {
     fn collider(&self) -> Option<Collider> {
         None
     }
-    fn collides(&self, other: &Option<Collider>) -> bool {
+    fn collides_with(&mut self, other: &Option<Collider>) -> bool {
+        false
+    }
+    fn collides(&self) -> bool {
         false
     }
     fn id(&self) -> EntityId;
@@ -215,14 +218,16 @@ impl EntityManager {
     pub fn check_collisions(&mut self, dispatcher: &mut MessageDispatcher) {
         let mut colliding_entites = Vec::new();
         {
-            let player = self.entities.get(&PLAYER_ID).unwrap();
+            let mut player = self.entities.remove(&PLAYER_ID).unwrap();
             for (k, ref e) in self.entities.iter() {
-                if k != &PLAYER_ID && player.collides(&e.collider()) {
+                if player.collides_with(&e.collider()) {
                     colliding_entites.push((*k, e.collider()));
                 }
             }
+            self.entities.insert(PLAYER_ID, player);
         }
         let mut player = self.entities.get_mut(&PLAYER_ID).unwrap();
+        let epsilon = 0.0;
         for (id, collider) in colliding_entites {
             if let Some((enemy_x, enemy_y)) = collider.and_then(|c| Some(c.top_left())) {
                 let (player_x, player_y) = player.collider().and_then(|c| Some(c.top_left())).unwrap();
@@ -231,10 +236,10 @@ impl EntityManager {
                 let x_dir = x.signum();
                 let y_dir = y.signum();
                 if x.abs() >= y.abs() {
-                    let dist = 8.0 - x.abs() + EPSILON;
+                    let dist = 8.0 - x.abs() + epsilon;
                     player.set_pos(player_x + x_dir * dist, player_y);
                 } else {
-                    let dist = 8.0 - y.abs() + EPSILON;
+                    let dist = 8.0 - y.abs() + epsilon;
                     player.set_pos(player_x , player_y + y_dir * dist);
                 }
             }

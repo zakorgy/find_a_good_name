@@ -81,6 +81,7 @@ impl Entity for Player {
     }
 
     fn update(&mut self, room: &Room) {
+        self.collides = false;
         let (mut xa, mut ya) = (0.0, 0.0);
         if self.keyboard.borrow().up {
             ya -= self.speed;
@@ -171,11 +172,17 @@ impl Entity for Player {
         Some(Collider::new(self.x, self.y, sprite_size, sprite_size))
     }
 
-    fn collides(&self, other: &Option<Collider>) -> bool {
+    fn collides_with(&mut self, other: &Option<Collider>) -> bool {
         if let Some(ref collider) = other {
-            return self.collider().unwrap().intersects(collider);
+            let collides = self.collider().unwrap().intersects(collider);
+            self.collides |= collides;
+            return collides;
         }
         false
+    }
+
+    fn collides(&self) -> bool {
+        self.collides
     }
 
     fn id(&self) -> EntityId {

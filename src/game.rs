@@ -146,7 +146,7 @@ impl Game {
                     self.entity_manager.add_entity(enemy);
 
                     let enemy = Box::new(Enemy::new(
-                        64f32,
+                        96f32,
                         72f32,
                         0.5,
                         AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
@@ -234,14 +234,17 @@ impl Game {
         self.entity_manager.check_collisions(&mut self.dispatcher);
         self.dispatcher.dispatch_messages(&mut self.entity_manager);
         self.level.update();
-        self.entity_manager.update(&self.level.current_room());
         self.update_offsets();
+        self.entity_manager.update(&self.level.current_room());
     }
 
     fn update_offsets(&mut self) {
-        let (x, y) = self.entity_manager.get_entity_mut(&PLAYER_ID).absolute_pos();
+        let player = self.entity_manager.get_entity_mut(&PLAYER_ID);
+        if player.collides() {
+            return;
+        }
+        let (x, y) = player.absolute_pos();
         let (lvl_width, lvl_height) = self.level.dimensions();
-
         self.x_offset = {
             let half_width = (self.width / 2) as i32;
             if x < half_width || lvl_width <= self.width as i32 {
