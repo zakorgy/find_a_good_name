@@ -1,6 +1,7 @@
 use super::super::graphics::Screen;
 use super::super::graphics::{SPRITE_SIZE_U32, SPRITE_SIZE_F32};
 use super::super::level::{Room, RoomId};
+use cgmath::Vector2;
 
 use std::boxed::Box;
 use std::collections::{HashMap, VecDeque};
@@ -13,19 +14,19 @@ pub const GAME_ID: EntityId = 1;
 pub const PLAYER_ID: EntityId = 2;
 pub const ENTITY_MANAGER_ID: EntityId = 3;
 const FIRST_FREE_ID: EntityId = 10;
-const EPSILON: f32 = 0.005;
+const EPSILON: Vector2<f32> = Vector2::new(0.005, 0.005);
 
 
 
 pub trait Entity {
     fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher);
-    fn move_entity(&mut self, _x: f32, _y: f32, _room: &Room) {}
-    fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32);
+    fn move_entity(&mut self, _distance: Vector2<f32>, _room: &Room) {}
+    fn render(&self, screen: &mut Screen, _offset: Vector2<f32>);
     fn remove(&mut self);
     fn is_removed(&self) -> bool;
-    fn set_pos(&mut self, _x: f32, _y: f32) {}
-    fn relative_pos(&self, x_offset: f32, y_offset: f32) -> (i32, i32);
-    fn absolute_pos(&self) -> (i32, i32);
+    fn set_pos(&mut self, _pos: Vector2<f32>) {}
+    fn relative_pos(&self, _offset: Vector2<f32>) -> Vector2<i32>;
+    fn absolute_pos(&self) -> Vector2<i32>;
     fn collider(&self) -> Option<Collider> {
         None
     }
@@ -51,43 +52,39 @@ pub enum Direction {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Collider {
-    pub x: f32,
-    pub y: f32,
-    pub width: f32,
-    pub height: f32,
+    pub origin: Vector2<f32>,
+    pub dimensions: Vector2<f32>,
 }
 
 impl Collider {
-    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Collider {
+    pub fn new(origin: Vector2<f32>, dimensions: Vector2<f32>) -> Collider {
         Collider {
-            x,
-            y,
-            width,
-            height,
+            origin,
+            dimensions,
         }
     }
 
     pub fn intersects(&self, other: &Collider) -> bool {
-        let l1 = (self.x + EPSILON, self.y + EPSILON);
-        let r1 = (self.x + self.width - EPSILON , self.y + self.height - EPSILON);
-        let l2 = (other.x + EPSILON, other.y + EPSILON);
-        let r2 = (other.x + other.width - EPSILON, other.y + other.height - EPSILON);
+        let l1 = self.origin + EPSILON;
+        let r1 = self.origin + self.dimensions - EPSILON;
+        let l2 = other.origin + EPSILON;
+        let r2 = other.origin + other.dimensions - EPSILON;
 
         // If one rectangle is on left side of other
-        if l1.0 >= r2.0 || l2.0 >= r1.0 {
+        if l1.x >= r2.x || l2.x >= r1.x {
             return false;
         }
 
         // If one rectangle is above other
-        if l1.1 >= r2.1 || l2.1 >= r1.1 {
+        if l1.y >= r2.y || l2.y >= r1.y {
             return false;
         }
 
         true
     }
 
-    pub fn top_left(&self) -> (f32, f32) {
-        (self.x, self.y)
+    pub fn origin(&self) -> Vector2<f32> {
+        self.origin
     }
 }
 
@@ -99,10 +96,13 @@ pub struct Door {
     pub removed: bool,
 }
 
-impl<'a> From<&'a ((u32, u32), RoomId)> for Door {
-    fn from(info: &((u32, u32), RoomId)) -> Self {
+static DOOR_COLLIDER_DIMS: Vector2<f32> = Vector2::new(1., 1.);
+static DOOR_COLLIDER_OFFSET: Vector2<f32> = Vector2::new(SPRITE_SIZE_F32 / 2., SPRITE_SIZE_F32 / 2.);
+
+impl<'a> From<&'a (Vector2<u32>, RoomId)> for Door {
+    fn from(info: &(Vector2<u32>, RoomId)) -> Self {
         Door {
-            collider: Collider::new(((info.0).0 * SPRITE_SIZE_U32) as f32 + SPRITE_SIZE_F32 / 2.0, ((info.0).1 * SPRITE_SIZE_U32) as f32 + SPRITE_SIZE_F32 / 2.0, 1.0, 1.0),
+            collider: Collider::new((info.0 * SPRITE_SIZE_U32).cast().unwrap() + DOOR_COLLIDER_OFFSET, DOOR_COLLIDER_DIMS),
             id: INVALID_ID,
             room: info.1,
             removed: false,
@@ -113,9 +113,7 @@ impl<'a> From<&'a ((u32, u32), RoomId)> for Door {
 impl Entity for Door {
     fn update(&mut self, _room: &Room, _dispatcher: &mut MessageDispatcher) {}
 
-    fn move_entity(&mut self, _x: f32, _y: f32, _room: &Room) {}
-
-    fn render(&self, _screen: &mut Screen, _x_offset: f32, _y_offset: f32) {}
+    fn render(&self, _screen: &mut Screen, _offset: Vector2<f32>) {}
 
     fn remove(&mut self) {
         self.removed = true;
@@ -125,12 +123,12 @@ impl Entity for Door {
         self.removed
     }
 
-    fn relative_pos(&self, x_offset: f32, y_offset: f32) -> (i32, i32) {
-        ((self.collider.x - x_offset) as i32, (self.collider.y - y_offset) as i32)
+    fn relative_pos(&self, offset: Vector2<f32>) -> Vector2<i32> {
+        (self.collider.origin() - offset).cast().unwrap()
     }
 
-    fn absolute_pos(&self) -> (i32, i32) {
-        (self.collider.x as i32, self.collider.y as i32)
+    fn absolute_pos(&self) -> Vector2<i32> {
+        self.collider.origin().cast().unwrap()
     }
 
     fn collider(&self) -> Option<Collider> {
@@ -211,9 +209,9 @@ impl EntityManager {
         }
     }
 
-    pub fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
+    pub fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
         for entity in self.entities.values() {
-            entity.render(screen, x_offset, y_offset);
+            entity.render(screen, offset);
         }
     }
 
@@ -231,18 +229,18 @@ impl EntityManager {
         let player = self.entities.get_mut(&PLAYER_ID).unwrap();
         let epsilon = 0.0;
         for (id, collider) in colliding_entites {
-            if let Some((enemy_x, enemy_y)) = collider.and_then(|c| Some(c.top_left())) {
-                let (player_x, player_y) = player.collider().and_then(|c| Some(c.top_left())).unwrap();
+            if let Some(Vector2 {x: enemy_x, y: enemy_y}) = collider.and_then(|c| Some(c.origin())) {
+                let Vector2 {x: player_x, y: player_y} = player.collider().and_then(|c| Some(c.origin())).unwrap();
                 let x = player_x - enemy_x;
                 let y = player_y - enemy_y;
                 let x_dir = x.signum();
                 let y_dir = y.signum();
                 if x.abs() >= y.abs() {
                     let dist = SPRITE_SIZE_F32 - x.abs() + epsilon;
-                    player.set_pos(player_x + x_dir * dist, player_y);
+                    player.set_pos((player_x + x_dir * dist, player_y).into());
                 } else {
                     let dist = SPRITE_SIZE_F32 - y.abs() + epsilon;
-                    player.set_pos(player_x , player_y + y_dir * dist);
+                    player.set_pos((player_x , player_y + y_dir * dist).into());
                 }
             }
             dispatcher.queue_message(PLAYER_ID, id, Message::Collides);

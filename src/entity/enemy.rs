@@ -2,10 +2,10 @@ use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::level::Room;
 use super::entity::{Collider, Direction, Entity, EntityId, MessageDispatcher, INVALID_ID};
+use cgmath::Vector2;
 
 pub struct Enemy {
-    x: f32,
-    y: f32,
+    position: Vector2<f32>,
     _speed: f32,
     _direction: Direction,
     removed: bool,
@@ -16,10 +16,9 @@ pub struct Enemy {
 }
 
 impl Enemy {
-    pub fn new(x: f32, y: f32, _speed: f32, sprite: AnimatedSprite) -> Enemy {
+    pub fn new(position: Vector2<f32>, _speed: f32, sprite: AnimatedSprite) -> Enemy {
         Enemy {
-            x,
-            y,
+            position,
             _speed,
             _direction: Direction::Right,
             removed: false,
@@ -36,14 +35,14 @@ impl Entity for Enemy {
         self.sprite.update()
     }
 
-    fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
+    fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
         let pixels = self.sprite.view();
-        let (ax, ay) = self.relative_pos(x_offset, y_offset);
+        let Vector2 {x: ax, y: ay} = self.relative_pos(offset);
         for y in 0..self.sprite.size() {
             for x in 0..self.sprite.size() {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
-                if xp < 0 || xp >= screen.width as i32 || yp < 0 || yp >= screen.height as i32 {
+                if xp < 0 || xp >= screen.dimensions.x as i32 || yp < 0 || yp >= screen.dimensions.y as i32 {
                     continue;
                 }
                 #[cfg(feature = "debug_rect")]
@@ -82,17 +81,17 @@ impl Entity for Enemy {
         self.removed
     }
 
-    fn relative_pos(&self, x_offset: f32, y_offset: f32) -> (i32, i32) {
-        ((self.x - x_offset) as i32, (self.y - y_offset) as i32)
+    fn relative_pos(&self, offset: Vector2<f32>) -> Vector2<i32> {
+        (self.position - offset).cast().unwrap()
     }
 
-    fn absolute_pos(&self) -> (i32, i32) {
-        (self.x as i32, self.y as i32)
+    fn absolute_pos(&self) -> Vector2<i32> {
+        self.position.cast::<i32>().unwrap()
     }
 
     fn collider(&self) -> Option<Collider> {
         let sprite_size = self.sprite.size() as f32;
-        Some(Collider::new(self.x, self.y, sprite_size, sprite_size))
+        Some(Collider::new(self.position, (sprite_size, sprite_size).into()))
     }
 
     fn id(&self) -> EntityId {

@@ -1,4 +1,5 @@
 use rand::{thread_rng, Rng};
+use cgmath::Vector2;
 
 use super::super::graphics::Screen;
 use super::room::*;
@@ -10,8 +11,8 @@ pub const MAP_GRID_SIZE_MINUS_ONE: usize = 8;
 
 struct LevelBuilder {
     rooms: [[Option<RoomBuilder>; MAP_GRID_SIZE]; MAP_GRID_SIZE],
-    taken_positions: HashMap<(i32, i32), RoomId>,
-    possible_positions: Vec<(i32, i32)>,
+    taken_positions: HashMap<Vector2<i32>, RoomId>,
+    possible_positions: Vec<Vector2<i32>>,
     number_of_rooms: usize,
     next_id: u8,
 }
@@ -29,7 +30,7 @@ impl LevelBuilder {
     //(don't forget, we already have a starter room!)
 
     pub fn new() -> LevelBuilder {
-        let start_pos = (MAP_GRID_SIZE as i32 / 2, MAP_GRID_SIZE as i32 / 2);
+        let start_pos = Vector2::new(MAP_GRID_SIZE as i32 / 2, MAP_GRID_SIZE as i32 / 2);
         let mut builder = LevelBuilder {
             rooms: Default::default(),
             taken_positions: std::iter::once((start_pos, 0)).collect(),
@@ -44,7 +45,7 @@ impl LevelBuilder {
             .with_path(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/room1.png"))
             .with_id(0);
 
-        builder.rooms[start_pos.0 as usize][start_pos.1 as usize] = Some(start_room);
+        builder.rooms[start_pos.x as usize][start_pos.y as usize] = Some(start_room);
         let ref free_positions = builder.free_neighbour_positions(start_pos);
         builder.possible_positions.extend_from_slice(free_positions);
         builder
@@ -55,24 +56,24 @@ impl LevelBuilder {
         self
     }
 
-    fn free_neighbour_positions(&self, pos: (i32, i32)) -> Vec<(i32, i32)> {
+    fn free_neighbour_positions(&self, pos: Vector2<i32>) -> Vec<Vector2<i32>> {
         let mut free_positions = Vec::new();
-        for x in [pos.0 - 1, pos.0 + 1].into_iter() {
+        for x in [pos.x - 1, pos.x + 1].into_iter() {
             if *x < 0 || *x > MAP_GRID_SIZE_MINUS_ONE as i32 {
                 continue;
             }
-            let y = pos.1;
+            let y = pos.y;
             if let None = self.rooms[*x as usize][y as usize] {
-                free_positions.push((*x, y));
+                free_positions.push(Vector2::new(*x, y));
             }
         }
-        for y in [pos.1 - 1, pos.1 + 1].into_iter() {
+        for y in [pos.y - 1, pos.y + 1].into_iter() {
             if *y < 0 || *y > MAP_GRID_SIZE_MINUS_ONE as i32 {
                 continue;
             }
-            let x = pos.0;
+            let x = pos.x;
             if let None = self.rooms[x as usize][*y as usize] {
-                free_positions.push((x, *y));
+                free_positions.push(Vector2::new(x, *y));
             }
         }
         free_positions
@@ -105,7 +106,7 @@ impl LevelBuilder {
     fn create_rooms(&mut self) {
         let mut rng = thread_rng();
         let mut new_room_index = 0;
-        let mut new_pos = (0, 0);
+        let mut new_pos = Vector2::new(0, 0);
         for _ in 1..self.number_of_rooms {
             let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("res/sprites/room{}.png", rng.gen_range(1, 4)));
             for _ in 0..400 {
@@ -120,10 +121,10 @@ impl LevelBuilder {
             let id = self.next_id;
             let room = RoomBuilder::new()
                 .with_path(&path)
-                .with_grid_pos(new_pos)
+                .with_grid_pos(new_pos.into())
                 .with_id(id);
             self.next_id += 1;
-            self.rooms[new_pos.0 as usize][new_pos.1 as usize] = Some(room);
+            self.rooms[new_pos.x as usize][new_pos.y as usize] = Some(room);
 
             // update taken positions
             self.taken_positions.insert(new_pos, id);
@@ -142,18 +143,18 @@ impl LevelBuilder {
         }
     }
 
-    fn neighbour_count(&self, pos: (i32, i32)) -> usize {
+    fn neighbour_count(&self, pos: Vector2<i32>) -> usize {
         let mut neighbours = 0;
-        if self.taken_positions.contains_key(&(pos.0 + 1, pos.1)) {
+        if self.taken_positions.contains_key(&(pos.x + 1, pos.y).into()) {
             neighbours += 1;
         }
-        if self.taken_positions.contains_key(&(pos.0 - 1, pos.1)) {
+        if self.taken_positions.contains_key(&(pos.x - 1, pos.y).into()) {
             neighbours += 1;
         }
-        if self.taken_positions.contains_key(&(pos.0, pos.1 + 1)) {
+        if self.taken_positions.contains_key(&(pos.x, pos.y + 1).into()) {
             neighbours += 1;
         }
-        if self.taken_positions.contains_key(&(pos.0, pos.1 - 1)) {
+        if self.taken_positions.contains_key(&(pos.x, pos.y - 1).into()) {
             neighbours += 1;
         }
         neighbours
@@ -165,16 +166,16 @@ impl LevelBuilder {
                 if let Some(ref mut room) = self.rooms[x][y] {
                     let xi = x as i32;
                     let yi = y as i32;
-                    if let Some(id) = self.taken_positions.get(&(xi - 1, yi)) {
+                    if let Some(id) = self.taken_positions.get(&(xi - 1, yi).into()) {
                         room.add_neighbour(Neighbour::West(*id));
                     }
-                    if let Some(id) = self.taken_positions.get(&(xi + 1, yi)) {
+                    if let Some(id) = self.taken_positions.get(&(xi + 1, yi).into()) {
                         room.add_neighbour(Neighbour::East(*id));
                     }
-                    if let Some(id) = self.taken_positions.get(&(xi, yi - 1)) {
+                    if let Some(id) = self.taken_positions.get(&(xi, yi - 1).into()) {
                         room.add_neighbour(Neighbour::North(*id));
                     }
-                    if let Some(id) = self.taken_positions.get(&(xi, yi + 1)) {
+                    if let Some(id) = self.taken_positions.get(&(xi, yi + 1).into()) {
                         room.add_neighbour(Neighbour::South(*id));
                     }
                 }
@@ -208,11 +209,11 @@ impl Level {
 
     pub fn update(&mut self) {}
 
-    pub fn render(&self, x_scroll: i32, y_scroll: i32, screen: &mut Screen) {
-        self.current_room().render(x_scroll, y_scroll, screen);
+    pub fn render(&self, scroll: Vector2<i32>, screen: &mut Screen) {
+        self.current_room().render(scroll, screen);
     }
 
-    pub fn dimensions(&self) -> (i32, i32) {
+    pub fn dimensions(&self) -> Vector2<i32> {
         self.current_room().dimensions()
     }
 
@@ -226,5 +227,5 @@ impl Level {
 
 pub struct MapInfo<'a> {
     pub map_grid: &'a [[bool; MAP_GRID_SIZE]; MAP_GRID_SIZE],
-    pub current_grid_pos: (i32, i32),
+    pub current_grid_pos: Vector2<i32>,
 }

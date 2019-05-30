@@ -4,8 +4,10 @@ use rand::Rng;
 use std::convert::From;
 use std::default::Default;
 use std::path::PathBuf;
+use cgmath::Vector2;
 
 const MAX_NEIGHBOUR: usize = 4;
+
 pub(crate) type RoomId = u8;
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
@@ -58,13 +60,24 @@ impl From<u32> for Tiles {
     }
 }
 
-#[derive(Default)]
 pub struct RoomBuilder {
     neighbours: [Neighbour; MAX_NEIGHBOUR],
     room_type: RoomType,
-    grid_pos: (i32, i32),
+    grid_pos: Vector2<i32>,
     path: PathBuf,
     pub id: RoomId,
+}
+
+impl Default for RoomBuilder {
+    fn default() -> RoomBuilder {
+        RoomBuilder {
+            neighbours: Default::default(),
+            room_type: Default::default(),
+            grid_pos: (0, 0).into(),
+            path: Default::default(),
+            id: Default::default(),
+        }
+    }
 }
 
 impl RoomBuilder {
@@ -72,7 +85,7 @@ impl RoomBuilder {
         RoomBuilder {
             neighbours: [Neighbour::Invalid; MAX_NEIGHBOUR],
             room_type: RoomType::Normal,
-            grid_pos: (0, 0),
+            grid_pos: (0, 0).into(),
             path: Default::default(),
             id: 0,
         }
@@ -92,7 +105,7 @@ impl RoomBuilder {
         self
     }
 
-    pub fn with_grid_pos(mut self, grid_pos: (i32, i32)) -> RoomBuilder {
+    pub fn with_grid_pos(mut self, grid_pos: Vector2<i32>) -> RoomBuilder {
         self.grid_pos = grid_pos;
         self
     }
@@ -124,7 +137,7 @@ impl RoomBuilder {
                     image::Rgba {
                         data: [0, 0, 255, 255],
                     } => {
-                        possible_door_positions.push((x,y));
+                        possible_door_positions.push(Vector2::new(x,y));
                         tiles.push(Tiles::WallTop(rand::thread_rng().gen_range(0_usize, 3)));
                     }
                     image::Rgba {
@@ -150,13 +163,13 @@ impl RoomBuilder {
                     let mut north_pos = possible_door_positions[0];
                     let mut idx = 0;
                     for (i, pos) in possible_door_positions.iter().enumerate() {
-                        if pos.1 < north_pos.1 {
+                        if pos.y < north_pos.y {
                             north_pos = *pos;
                             idx = i;
                         }
                     }
                     possible_door_positions.remove(idx);
-                    tiles[(north_pos.1 * width + north_pos.0) as usize] = Tiles::Door;
+                    tiles[(north_pos.y * width + north_pos.x) as usize] = Tiles::Door;
                     load_info.doors[0] = Some((north_pos, *id));
                 }
                 Neighbour::East(id) => {
@@ -164,13 +177,13 @@ impl RoomBuilder {
                     let mut east_pos = possible_door_positions[0];
                     let mut idx = 0;
                     for (i, pos) in possible_door_positions.iter().enumerate() {
-                        if pos.0 > east_pos.0 {
+                        if pos.x > east_pos.x {
                             east_pos = *pos;
                             idx = i;
                         }
                     }
                     possible_door_positions.remove(idx);
-                    tiles[(east_pos.1 * width + east_pos.0) as usize] = Tiles::Door;
+                    tiles[(east_pos.y * width + east_pos.x) as usize] = Tiles::Door;
                     load_info.doors[1] = Some((east_pos, *id));
                 }
                 Neighbour::South(id) => {
@@ -178,13 +191,13 @@ impl RoomBuilder {
                     let mut south_pos = possible_door_positions[0];
                     let mut idx = 0;
                     for (i, pos) in possible_door_positions.iter().enumerate() {
-                        if pos.1 > south_pos.1 {
+                        if pos.y > south_pos.y {
                             south_pos = *pos;
                             idx = i;
                         }
                     }
                     possible_door_positions.remove(idx);
-                    tiles[(south_pos.1 * width + south_pos.0) as usize] = Tiles::Door;
+                    tiles[(south_pos.y * width + south_pos.x) as usize] = Tiles::Door;
                     load_info.doors[2] = Some((south_pos, *id));
                 }
                 Neighbour::West(id) => {
@@ -192,13 +205,13 @@ impl RoomBuilder {
                     let mut west_pos = possible_door_positions[0];
                     let mut idx = 0;
                     for (i, pos) in possible_door_positions.iter().enumerate() {
-                        if pos.0 < west_pos.0 {
+                        if pos.x < west_pos.x {
                             west_pos = *pos;
                             idx = i;
                         }
                     }
                     possible_door_positions.remove(idx);
-                    tiles[(west_pos.1 * width + west_pos.0) as usize] = Tiles::Door;
+                    tiles[(west_pos.y * width + west_pos.x) as usize] = Tiles::Door;
                     load_info.doors[3] = Some((west_pos, *id));
                 }
             }
@@ -207,8 +220,7 @@ impl RoomBuilder {
             self.id,
             Room {
                 neighbours: self.neighbours,
-                width: width as _,
-                height: height as _,
+                dimensions: (width as _, height as _).into(),
                 tiles,
                 room_type: self.room_type,
                 grid_pos: self.grid_pos,
@@ -220,29 +232,29 @@ impl RoomBuilder {
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct LoadInfo {
-    pub doors: [Option<((u32, u32), RoomId)>; MAX_NEIGHBOUR],
+    pub doors: [Option<(Vector2<u32>, RoomId)>; MAX_NEIGHBOUR],
 }
 
 pub struct Room {
-    pub width: i32,
-    pub height: i32,
+    pub dimensions: Vector2<i32>,
     pub neighbours: [Neighbour; MAX_NEIGHBOUR],
     pub tiles: Vec<Tiles>,
     pub room_type: RoomType,
-    pub grid_pos: (i32, i32),
+    pub grid_pos: Vector2<i32>,
     pub load_info: LoadInfo,
+}
+
+fn right_shift_vec(vec: Vector2<i32>, value: u32) -> Vector2<i32> {
+    [vec.x>> value, vec.y>> value].into()
 }
 
 impl Room {
     //pub fn update(&mut self) {}
 
-    pub fn render(&self, x_scroll: i32, y_scroll: i32, screen: &mut Screen) {
-        screen.set_offset(x_scroll, y_scroll);
-        let x0 = x_scroll >> SPRITE_SIZE_SHIFT_VALUE;
-        let x1 = (x_scroll + screen.width as i32) >> SPRITE_SIZE_SHIFT_VALUE;
-        let y0 = y_scroll >> SPRITE_SIZE_SHIFT_VALUE;
-        let y1 = (y_scroll + screen.height as i32) >> SPRITE_SIZE_SHIFT_VALUE;
-
+    pub fn render(&self, offset: Vector2<i32>, screen: &mut Screen) {
+        screen.set_offset(offset);
+        let Vector2 {x: x0, y: y0} = right_shift_vec(offset, SPRITE_SIZE_SHIFT_VALUE);
+        let Vector2 {x: x1, y: y1} = right_shift_vec(offset + screen.dimensions.cast().unwrap(), SPRITE_SIZE_SHIFT_VALUE);
         for y in y0..=y1 {
             for x in x0..=x1 {
                 self.get_tile(x, y).render(x, y, screen);
@@ -251,12 +263,12 @@ impl Room {
     }
 
     pub fn get_tile(&self, x: i32, y: i32) -> &'static super::tile::Tile {
-        if x < 0 || x >= self.width || y < 0 || y >= self.height {
+        if x < 0 || x >= self.dimensions.x || y < 0 || y >= self.dimensions.y {
             return &super::tile::VOID_TILE;
         }
         match self
             .tiles
-            .get((x + y * self.width) as usize)
+            .get((x + y * self.dimensions.x) as usize)
             .expect("Out of bounds")
         {
             Tiles::Ground => &super::tile::GROUND_TILES[0],
@@ -269,19 +281,19 @@ impl Room {
         }
     }
 
-    pub fn dimensions(&self) -> (i32, i32) {
-        (self.width * SPRITE_SIZE_U32 as i32, self.height * SPRITE_SIZE_U32 as i32)
+    pub fn dimensions(&self) -> Vector2<i32> {
+        self.dimensions * SPRITE_SIZE_U32 as i32
     }
 
-    pub fn middle_point(&self) -> (f32, f32) {
+    pub fn middle_point(&self) -> Vector2<f32> {
         for (i, tile) in self.tiles.iter().enumerate() {
             if let Tiles::SpawnPoint(_) = tile {
                 return (
-                    (i as i32 % self.width) as f32 * 8f32,
-                    (i as i32 / self.width) as f32 * 8f32,
-                );
+                    (i as i32 % self.dimensions.x) as f32 * 8.,
+                    (i as i32 / self.dimensions.x) as f32 * 8.,
+                ).into();
             }
         }
-        return (0f32, 0f32);
+        return (0., 0.).into();
     }
 }

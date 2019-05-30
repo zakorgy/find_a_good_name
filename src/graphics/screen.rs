@@ -1,12 +1,11 @@
 use super::super::level::{MapInfo, Tile, CURRENT_ROOM_TILE, NO_ROOM_TILE, ROOM_TILE, MAP_GRID_SIZE};
 use super::super::graphics::{HALF_SPRITE_SIZE_SHIFT_VALUE};
 use image::GenericImageView;
+use cgmath::Vector2;
 
 pub struct Screen {
-    pub width: u32,
-    pub height: u32,
-    x_offset: i32,
-    y_offset: i32,
+    pub dimensions: Vector2<u32>,
+    offset: Vector2<i32>,
     pub canvas: image::RgbaImage,
 }
 
@@ -14,22 +13,19 @@ impl Screen {
     pub fn new(width: u32, height: u32) -> Screen {
         let canvas = image::RgbaImage::new(width, height);
         Screen {
-            width,
-            height,
-            x_offset: 0,
-            y_offset: 0,
+            dimensions: (width, height).into(),
+            offset: (0, 0).into(),
             canvas,
         }
     }
 
-    pub fn render_tile(&mut self, mut xp: i32, mut yp: i32, tile: &Tile) {
-        xp -= self.x_offset;
-        yp -= self.y_offset;
+    pub fn render_tile(&mut self, mut position: Vector2<i32>, tile: &Tile) {
+        position -= self.offset;
         for y in 0..tile.sprite.size {
-            let ya = y as i32 + yp;
+            let ya = y as i32 + position.y;
             for x in 0..tile.sprite.size {
-                let xa = x as i32 + xp;
-                if xa < 0 || xa >= self.width as i32 || ya < 0 || ya >= self.height as i32 {
+                let xa = x as i32 + position.x;
+                if xa < 0 || xa >= self.dimensions.x as i32 || ya < 0 || ya >= self.dimensions.y as i32 {
                     continue;
                 }
                 self.canvas
@@ -45,24 +41,24 @@ impl Screen {
         for x in 0..MAP_GRID_SIZE {
             for y in 0..MAP_GRID_SIZE {
                 if map_info.map_grid[x][y] {
-                    if (x as i32, y as i32) == map_info.current_grid_pos {
+                    if (x as i32, y as i32) == map_info.current_grid_pos.into() {
                         self.canvas.copy_from(
                             &CURRENT_ROOM_TILE.sprite.view(),
-                            x_start + (x as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
-                            y_start + (y as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
+                            x_start + (x as u32)<< HALF_SPRITE_SIZE_SHIFT_VALUE,
+                            y_start + (y as u32)<< HALF_SPRITE_SIZE_SHIFT_VALUE,
                         );
                     } else {
                         self.canvas.copy_from(
                             &ROOM_TILE.sprite.view(),
-                            x_start + (x as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
-                            y_start + (y as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
+                            x_start + (x as u32)<< HALF_SPRITE_SIZE_SHIFT_VALUE,
+                            y_start + (y as u32)<< HALF_SPRITE_SIZE_SHIFT_VALUE,
                         );
                     }
                 } else {
                     self.canvas.copy_from(
                         &NO_ROOM_TILE.sprite.view(),
-                        x_start + (x as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
-                        y_start + (y as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
+                        x_start + (x as u32)<< HALF_SPRITE_SIZE_SHIFT_VALUE,
+                        y_start + (y as u32)<< HALF_SPRITE_SIZE_SHIFT_VALUE,
                     );
                 }
             }
@@ -75,8 +71,7 @@ impl Screen {
         }
     }
 
-    pub fn set_offset(&mut self, x_offset: i32, y_offset: i32) {
-        self.x_offset = x_offset;
-        self.y_offset = y_offset;
+    pub fn set_offset(&mut self, offset: Vector2<i32>) {
+        self.offset = offset;
     }
 }

@@ -8,10 +8,14 @@ use super::entity::{PLAYER_ID, ENTITY_MANAGER_ID};
 use std::cell::RefCell;
 use std::rc::Rc;
 use piston::input::Key;
+use cgmath::Vector2;
+
+fn right_shift_vec(vec: Vector2<i32>, value: u32) -> Vector2<i32> {
+    [vec.x>> value, vec.y>> value].into()
+}
 
 pub struct Player {
-    x: f32,
-    y: f32,
+    position: Vector2<f32>,
     speed: f32,
     direction: Direction,
     removed: bool,
@@ -24,16 +28,13 @@ pub struct Player {
 
 impl Player {
     pub fn new(
-        x: f32,
-        y: f32,
         speed: f32,
         sprite: AnimatedSprite,
         keyboard: Rc<RefCell<KeyBoard>>,
         id: EntityId,
     ) -> Player {
         Player {
-            x,
-            y,
+            position: (0., 0.).into(),
             speed,
             direction: Direction::Right,
             removed: false,
@@ -45,41 +46,38 @@ impl Player {
         }
     }
 
-    fn collision(&self, room: &Room, x_offset: f32, y_offset: f32) -> bool {
-        let x = (self.x + x_offset) as i32;
-        let y = (self.y + y_offset) as i32;
-        let x0 = x >> SPRITE_SIZE_SHIFT_VALUE;
-        let y0 = y >> SPRITE_SIZE_SHIFT_VALUE;
-        let x7 = (x + self.sprite.size() as i32 - 1) >> SPRITE_SIZE_SHIFT_VALUE;
-        let y7 = (y + self.sprite.size() as i32 - 1) >> SPRITE_SIZE_SHIFT_VALUE;
+    fn collision(&self, room: &Room, offset: Vector2<f32>) -> bool {
+        let xy = (self.position + offset).cast::<i32>().unwrap();
+        let xy0 = right_shift_vec(xy, SPRITE_SIZE_SHIFT_VALUE);
+        let size_minus_one = self.sprite.size() as i32 - 1;
+        let xy7 = right_shift_vec(xy + Vector2::new(size_minus_one, size_minus_one), SPRITE_SIZE_SHIFT_VALUE);
         match self.direction {
-            Direction::Up => room.get_tile(x0, y0).solid || room.get_tile(x7, y0).solid,
-            Direction::Down => room.get_tile(x0, y7).solid || room.get_tile(x7, y7).solid,
-            Direction::Right => room.get_tile(x7, y0).solid || room.get_tile(x7, y7).solid,
-            Direction::Left => room.get_tile(x0, y0).solid || room.get_tile(x0, y7).solid,
+            Direction::Up => room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy7.x, xy0.y).solid,
+            Direction::Down => room.get_tile(xy0.x, xy7.y).solid || room.get_tile(xy7.x, xy7.y).solid,
+            Direction::Right => room.get_tile(xy7.x, xy0.y).solid || room.get_tile(xy7.x, xy7.y).solid,
+            Direction::Left => room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy0.x, xy7.y).solid,
         }
     }
 }
 
 impl Entity for Player {
-    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {
-        if x < 0.0 {
+    fn move_entity(&mut self, distance: Vector2<f32>, room: &Room) {
+        if distance.x < 0.0 {
             self.direction = Direction::Left;
             self.flipped = true;
         }
-        if x > 0.0 {
+        if distance.x > 0.0 {
             self.direction = Direction::Right;
             self.flipped = false;
         }
-        if y < 0.0 {
+        if distance.y < 0.0 {
             self.direction = Direction::Up;
         }
-        if y > 0.0 {
+        if distance.y > 0.0 {
             self.direction = Direction::Down;
         }
-        if !self.collision(&room, x, y) {
-            self.x += x;
-            self.y += y;
+        if !self.collision(&room, distance) {
+            self.position += distance;
         }
     }
 
@@ -101,16 +99,16 @@ impl Entity for Player {
 
         if self.keyboard.borrow().keys.contains(&Key::W) {
             println!("W pressed, create new projectile");
-            dispatcher.queue_message(PLAYER_ID, ENTITY_MANAGER_ID, Message::SpawnEntity((self.x, self.y)));
+            dispatcher.queue_message(PLAYER_ID, ENTITY_MANAGER_ID, Message::SpawnEntity((self.position.x, self.position.x)));
         }
         let mut update_sprite = false;
         if xa != 0.0 {
-            self.move_entity(xa, 0.0, room);
+            self.move_entity((xa, 0.0).into(), room);
             update_sprite = true;
         }
 
         if ya != 0.0 {
-            self.move_entity(0.0, ya, room);
+            self.move_entity((0.0, ya).into(), room);
             update_sprite = true;
         }
 
@@ -121,14 +119,14 @@ impl Entity for Player {
         }
     }
 
-    fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
+    fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
         let pixels = self.sprite.view();
-        let (ax, ay) = self.relative_pos(x_offset, y_offset);
+        let Vector2 {x: ax, y: ay} = self.relative_pos(offset);
         for y in 0..self.sprite.size() {
             for x in 0..self.sprite.size() {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
-                if xp < 0 || xp >= screen.width as i32 || yp < 0 || yp >= screen.height as i32 {
+                if xp < 0 || xp >= screen.dimensions.x as i32 || yp < 0 || yp >= screen.dimensions.y as i32 {
                     continue;
                 }
                 #[cfg(feature = "debug_rect")]
@@ -167,17 +165,17 @@ impl Entity for Player {
         self.removed
     }
 
-    fn relative_pos(&self, x_offset: f32, y_offset: f32) -> (i32, i32) {
-        ((self.x - x_offset) as i32, (self.y - y_offset) as i32)
+    fn relative_pos(&self, offset: Vector2<f32>) -> Vector2<i32> {
+        (self.position - offset).cast().unwrap()
     }
 
-    fn absolute_pos(&self) -> (i32, i32) {
-        (self.x as i32, self.y as i32)
+    fn absolute_pos(&self) -> Vector2<i32> {
+        self.position.cast::<i32>().unwrap()
     }
 
     fn collider(&self) -> Option<Collider> {
         let sprite_size = self.sprite.size() as f32;
-        Some(Collider::new(self.x, self.y, sprite_size, sprite_size))
+        Some(Collider::new(self.position, (sprite_size, sprite_size).into()))
     }
 
     fn collides_with(&mut self, other: &Option<Collider>) -> bool {
@@ -200,8 +198,7 @@ impl Entity for Player {
     fn handle_message(&mut self, _message: Telegram, _dispatcher: &mut MessageDispatcher) {
     }
 
-    fn set_pos(&mut self, x: f32, y: f32) {
-        self.x = x;
-        self.y = y;
+    fn set_pos(&mut self, pos: Vector2<f32>) {
+        self.position = pos;
     }
 }

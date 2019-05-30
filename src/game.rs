@@ -3,6 +3,7 @@ use super::entity::PLAYER_ID;
 use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS, SPRITE_SIZE_U32};
 use super::input::{Key, KeyBoard};
 use super::level::{Level, RoomId};
+use cgmath::Vector2;
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
 use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
@@ -26,10 +27,8 @@ enum GameState {
 }
 
 pub struct Game {
-    width: u32,
-    height: u32,
-    x_offset: i32,
-    y_offset: i32,
+    window_dimensions: Vector2<u32>,
+    offset: Vector2<i32>,
     scale: u32,
     state: GameState,
     pub keyboard: Rc<RefCell<KeyBoard>>,
@@ -63,10 +62,8 @@ impl Game {
         .unwrap();
 
         Game {
-            width,
-            height,
-            x_offset: 0,
-            y_offset: 0,
+            window_dimensions: (width, height).into(),
+            offset: (0, 0).into(),
             scale,
             state: GameState::Start,
             keyboard: Rc::new(RefCell::new(KeyBoard::new())),
@@ -94,8 +91,6 @@ impl Game {
             match self.state {
                 GameState::Start => {
                     let player = Box::new(Player::new(
-                        0.0,
-                        0.0,
                         0.7,
                         AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
                         Rc::clone(&self.keyboard),
@@ -121,35 +116,32 @@ impl Game {
                             }
                             false
                         }).unwrap().unwrap().0;
-                        let mut pos = ((pos.0 * SPRITE_SIZE_U32) as f32, (pos.1 * SPRITE_SIZE_U32) as f32);
-                        if (midle_point.0 - pos.0) > 0.0 {
+                        let mut pos = ((pos.x * SPRITE_SIZE_U32) as f32, (pos.y * SPRITE_SIZE_U32) as f32);
+                        if (midle_point.x - pos.0) > 0.0 {
                             pos.0 += OFFSET_FROM_DOOR;
-                        } else if (midle_point.0 - pos.0) < 0.0 {
+                        } else if (midle_point.x - pos.0) < 0.0 {
                             pos.0 -= OFFSET_FROM_DOOR;
                         }
 
-                        if (midle_point.1 - pos.1) > 0.0 {
+                        if (midle_point.y - pos.1) > 0.0 {
                             pos.1 += OFFSET_FROM_DOOR;
-                        } else if (midle_point.1 - pos.1) < 0.0 {
+                        } else if (midle_point.y - pos.1) < 0.0 {
                             pos.1 -= OFFSET_FROM_DOOR;
                         }
-                        pos
+                        pos.into()
                     };
 
-                    self.entity_manager.get_entity_mut(&PLAYER_ID).set_pos(enter_point.0, enter_point.1);
-                    self.x_offset = 0;
-                    self.y_offset = 0;
+                    self.entity_manager.get_entity_mut(&PLAYER_ID).set_pos(enter_point.into());
+                    self.offset = (0, 0).into();
                     let enemy = Box::new(Enemy::new(
-                        32f32,
-                        32f32,
+                        (32., 32.).into(),
                         0.5,
                         AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
                     ));
                     self.entity_manager.add_entity(enemy);
 
                     let enemy = Box::new(Enemy::new(
-                        96f32,
-                        72f32,
+                        (96., 72.).into(),
                         0.5,
                         AnimatedSprite::new(ENEMIES.to_vec(), vec![30, 45, 55, 60, 65]),
                     ));
@@ -245,25 +237,25 @@ impl Game {
         if player.collides() {
             return;
         }
-        let (x, y) = player.absolute_pos();
-        let (lvl_width, lvl_height) = self.level.dimensions();
-        self.x_offset = {
-            let half_width = (self.width / 2) as i32;
-            if x < half_width || lvl_width <= self.width as i32 {
+        let Vector2 {x, y} = player.absolute_pos();
+        let Vector2 {x: lvl_width, y: lvl_height} = self.level.dimensions();
+        self.offset.x = {
+            let half_width = (self.window_dimensions.x / 2) as i32;
+            if x < half_width || lvl_width <= self.window_dimensions.x as i32 {
                 0
             } else if x > lvl_width - half_width {
-                lvl_width - self.width as i32
+                lvl_width - self.window_dimensions.x as i32
             } else {
                 x - half_width
             }
         };
 
-        self.y_offset = {
-            let half_height = (self.height / 2) as i32;
-            if y < half_height || lvl_height <= self.height as i32 {
+        self.offset.y = {
+            let half_height = (self.window_dimensions.y / 2) as i32;
+            if y < half_height || lvl_height <= self.window_dimensions.y as i32 {
                 0
             } else if y > lvl_height - half_height {
-                lvl_height - self.height as i32
+                lvl_height - self.window_dimensions.y as i32
             } else {
                 y - half_height
             }
@@ -272,9 +264,8 @@ impl Game {
 
     fn render<E: GenericEvent>(&mut self, event: &E) {
         self.screen.clear();
-        self.level
-            .render(self.x_offset, self.y_offset, &mut self.screen);
-        self.entity_manager.render(&mut self.screen, self.x_offset as f32, self.y_offset as f32);
+        self.level.render(self.offset, &mut self.screen);
+        self.entity_manager.render(&mut self.screen, self.offset.cast().unwrap());
         self.screen.render_map(self.level.map_info());
         self.texture
             .update(&mut self.window.encoder, &self.screen.canvas)

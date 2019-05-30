@@ -1,8 +1,8 @@
-extern crate bitflags;
 #[macro_use]
 extern crate lazy_static;
 extern crate piston;
 extern crate piston_window;
+extern crate cgmath;
 
 mod entity;
 mod game;
