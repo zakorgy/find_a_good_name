@@ -236,8 +236,8 @@ impl Game {
         self.entity_manager.check_collisions(&mut self.dispatcher);
         self.dispatcher.dispatch_messages(&mut self.entity_manager);
         self.level.update();
-        self.update_offsets();
         self.entity_manager.update(&self.level.current_room(), &mut self.dispatcher);
+        self.update_offsets();
     }
 
     fn update_offsets(&mut self) {

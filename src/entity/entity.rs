@@ -13,7 +13,7 @@ pub const GAME_ID: EntityId = 1;
 pub const PLAYER_ID: EntityId = 2;
 pub const ENTITY_MANAGER_ID: EntityId = 3;
 const FIRST_FREE_ID: EntityId = 10;
-const EPSILON: f32 = 0.5;
+const EPSILON: f32 = 0.005;
 
 
 
