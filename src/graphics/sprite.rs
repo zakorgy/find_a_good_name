@@ -1,37 +1,43 @@
 use image::{GenericImageView, RgbaImage, SubImage};
 use std::path::PathBuf;
 
+pub static SPRITE_SIZE_U32: u32 = 8;
+pub static SPRITE_SIZE_SHIFT_VALUE: u32 = 3;
+pub static HALF_SPRITE_SIZE_U32: u32 = 4;
+pub static HALF_SPRITE_SIZE_SHIFT_VALUE: u32 = 2;
+pub static SPRITE_SIZE_F32: f32 = 8.0;
+
 lazy_static! {
     pub static ref SHEET: SpriteSheet = {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/tileset.png");
         SpriteSheet::new(path.to_str().unwrap().to_owned())
     };
-    static ref GROUND1: Sprite = Sprite::new(8, 0, 11, &SHEET);
-    static ref GROUND2: Sprite = Sprite::new(8, 1, 11, &SHEET);
-    pub static ref VOID: Sprite = Sprite::new(8, 0, 0, &SHEET);
-    pub static ref PLAYER: Sprite = Sprite::new(8, 0, 8, &SHEET);
-    static ref PLAYER0: Sprite = Sprite::new(8, 7, 7, &SHEET);
-    static ref PLAYER1: Sprite = Sprite::new(8, 0, 8, &SHEET);
+    static ref GROUND1: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 11, &SHEET);
+    static ref GROUND2: Sprite = Sprite::new(SPRITE_SIZE_U32, 1, 11, &SHEET);
+    pub static ref VOID: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 0, &SHEET);
+    pub static ref PLAYER: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 8, &SHEET);
+    static ref PLAYER0: Sprite = Sprite::new(SPRITE_SIZE_U32, 7, 7, &SHEET);
+    static ref PLAYER1: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 8, &SHEET);
     pub static ref PLAYERS: Vec<&'static Sprite> = vec![&PLAYER0, &PLAYER1];
-    static ref ENEMY0: Sprite = Sprite::new(8, 2, 9, &SHEET);
-    static ref ENEMY1: Sprite = Sprite::new(8, 3, 9, &SHEET);
+    static ref ENEMY0: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 9, &SHEET);
+    static ref ENEMY1: Sprite = Sprite::new(SPRITE_SIZE_U32, 3, 9, &SHEET);
     pub static ref ENEMIES: Vec<&'static Sprite> = vec![&ENEMY0, &ENEMY1];
     pub static ref GROUNDS: Vec<&'static Sprite> = vec![&GROUND1, &GROUND2];
-    static ref WALL_TOP0: Sprite = Sprite::new(8, 1, 0, &SHEET);
-    static ref WALL_TOP1: Sprite = Sprite::new(8, 2, 0, &SHEET);
-    static ref WALL_TOP2: Sprite = Sprite::new(8, 3, 0, &SHEET);
+    static ref WALL_TOP0: Sprite = Sprite::new(SPRITE_SIZE_U32, 1, 0, &SHEET);
+    static ref WALL_TOP1: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 0, &SHEET);
+    static ref WALL_TOP2: Sprite = Sprite::new(SPRITE_SIZE_U32, 3, 0, &SHEET);
     pub static ref WALL_TOPS: Vec<&'static Sprite> = vec![&WALL_TOP0, &WALL_TOP1, &WALL_TOP2,];
-    static ref WALL0: Sprite = Sprite::new(8, 4, 1, &SHEET);
-    static ref WALL1: Sprite = Sprite::new(8, 5, 1, &SHEET);
-    static ref WALL2: Sprite = Sprite::new(8, 6, 1, &SHEET);
+    static ref WALL0: Sprite = Sprite::new(SPRITE_SIZE_U32, 4, 1, &SHEET);
+    static ref WALL1: Sprite = Sprite::new(SPRITE_SIZE_U32, 5, 1, &SHEET);
+    static ref WALL2: Sprite = Sprite::new(SPRITE_SIZE_U32, 6, 1, &SHEET);
     pub static ref WALLS: Vec<&'static Sprite> = vec![&WALL0, &WALL1, &WALL2,];
-    static ref GRASS0: Sprite = Sprite::new(8, 2, 2, &SHEET);
-    static ref GRASS1: Sprite = Sprite::new(8, 6, 2, &SHEET);
+    static ref GRASS0: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 2, &SHEET);
+    static ref GRASS1: Sprite = Sprite::new(SPRITE_SIZE_U32, 6, 2, &SHEET);
     pub static ref GRASSES: Vec<&'static Sprite> = vec![&GRASS0, &GRASS1,];
-    pub static ref DOOR: Sprite = Sprite::new(8, 2, 1, &SHEET);
-    pub static ref ROOM: Sprite = Sprite::new(4, 12, 28, &SHEET);
-    pub static ref CURRENT_ROOM: Sprite = Sprite::new(4, 12, 29, &SHEET);
-    pub static ref NO_ROOM: Sprite = Sprite::new(4, 13, 28, &SHEET);
+    pub static ref DOOR: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 1, &SHEET);
+    pub static ref ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 12, 28, &SHEET);
+    pub static ref CURRENT_ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 12, 29, &SHEET);
+    pub static ref NO_ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 13, 28, &SHEET);
 }
 
 pub struct SpriteSheet {

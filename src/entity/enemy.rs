@@ -6,25 +6,25 @@ use super::entity::{Collider, Direction, Entity, EntityId, MessageDispatcher, IN
 pub struct Enemy {
     x: f32,
     y: f32,
-    speed: f32,
-    direction: Direction,
+    _speed: f32,
+    _direction: Direction,
     removed: bool,
     sprite: AnimatedSprite,
-    collides: bool,
+    _collides: bool,
     flipped: bool,
     id: EntityId,
 }
 
 impl Enemy {
-    pub fn new(x: f32, y: f32, speed: f32, sprite: AnimatedSprite) -> Enemy {
+    pub fn new(x: f32, y: f32, _speed: f32, sprite: AnimatedSprite) -> Enemy {
         Enemy {
             x,
             y,
-            speed,
-            direction: Direction::Right,
+            _speed,
+            _direction: Direction::Right,
             removed: false,
             sprite,
-            collides: false,
+            _collides: false,
             flipped: false,
             id: INVALID_ID,
         }
@@ -32,11 +32,9 @@ impl Enemy {
 }
 
 impl Entity for Enemy {
-    fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {
+    fn update(&mut self, _room: &Room, _dispatcher: &mut MessageDispatcher) {
         self.sprite.update()
     }
-
-    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {}
 
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {
         let pixels = self.sprite.view();
@@ -65,7 +63,7 @@ impl Entity for Enemy {
                         continue;
                     }
                 }
-                let pixel = match pixels.get_pixel(if self.flipped { 7 - x } else { x }, y) {
+                let pixel = match pixels.get_pixel(if self.flipped { self.sprite.size() - 1 - x } else { x }, y) {
                     Rgba {
                         data: [255, 0, 255, 255],
                     } => continue,

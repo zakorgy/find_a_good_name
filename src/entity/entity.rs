@@ -1,4 +1,5 @@
 use super::super::graphics::Screen;
+use super::super::graphics::{SPRITE_SIZE_U32, SPRITE_SIZE_F32};
 use super::super::level::{Room, RoomId};
 
 use std::boxed::Box;
@@ -18,26 +19,26 @@ const EPSILON: f32 = 0.5;
 
 pub trait Entity {
     fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher);
-    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {}
+    fn move_entity(&mut self, _x: f32, _y: f32, _room: &Room) {}
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32);
     fn remove(&mut self);
     fn is_removed(&self) -> bool;
-    fn set_pos(&mut self, x: f32, y: f32) {}
+    fn set_pos(&mut self, _x: f32, _y: f32) {}
     fn relative_pos(&self, x_offset: f32, y_offset: f32) -> (i32, i32);
     fn absolute_pos(&self) -> (i32, i32);
     fn collider(&self) -> Option<Collider> {
         None
     }
-    fn collides_with(&mut self, other: &Option<Collider>) -> bool {
+    fn collides_with(&mut self, _other: &Option<Collider>) -> bool {
         false
     }
     fn collides(&self) -> bool {
         false
     }
     fn id(&self) -> EntityId;
-    fn set_id(&mut self, id: EntityId) {}
-    fn handle_message(&mut self, message: Telegram, dispatcher: &mut MessageDispatcher) {}
-    fn send_message(&self, message: Message, receiver: EntityId, dispatcher: &mut MessageDispatcher) {}
+    fn set_id(&mut self, _id: EntityId) {}
+    fn handle_message(&mut self, _message: Telegram, _dispatcher: &mut MessageDispatcher) {}
+    fn send_message(&self, _message: Message, _receiver: EntityId, _dispatcher: &mut MessageDispatcher) {}
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -73,12 +74,12 @@ impl Collider {
         let r2 = (other.x + other.width - EPSILON, other.y + other.height - EPSILON);
 
         // If one rectangle is on left side of other
-        if (l1.0 >= r2.0 || l2.0 >= r1.0) {
+        if l1.0 >= r2.0 || l2.0 >= r1.0 {
             return false;
         }
 
         // If one rectangle is above other
-        if (l1.1 >= r2.1 || l2.1 >= r1.1) {
+        if l1.1 >= r2.1 || l2.1 >= r1.1 {
             return false;
         }
 
@@ -101,7 +102,7 @@ pub struct Door {
 impl<'a> From<&'a ((u32, u32), RoomId)> for Door {
     fn from(info: &((u32, u32), RoomId)) -> Self {
         Door {
-            collider: Collider::new(((info.0).0 * 8) as f32 + 4.0, ((info.0).1 * 8) as f32 + 4.0, 1.0, 1.0),
+            collider: Collider::new(((info.0).0 * SPRITE_SIZE_U32) as f32 + SPRITE_SIZE_F32 / 2.0, ((info.0).1 * SPRITE_SIZE_U32) as f32 + SPRITE_SIZE_F32 / 2.0, 1.0, 1.0),
             id: INVALID_ID,
             room: info.1,
             removed: false,
@@ -110,11 +111,11 @@ impl<'a> From<&'a ((u32, u32), RoomId)> for Door {
 }
 
 impl Entity for Door {
-    fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {}
+    fn update(&mut self, _room: &Room, _dispatcher: &mut MessageDispatcher) {}
 
-    fn move_entity(&mut self, x: f32, y: f32, room: &Room) {}
+    fn move_entity(&mut self, _x: f32, _y: f32, _room: &Room) {}
 
-    fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32) {}
+    fn render(&self, _screen: &mut Screen, _x_offset: f32, _y_offset: f32) {}
 
     fn remove(&mut self) {
         self.removed = true;
@@ -145,7 +146,7 @@ impl Entity for Door {
     }
 
     fn handle_message(&mut self, message: Telegram, dispatcher: &mut MessageDispatcher) {
-        let Telegram { sender, receiver, message } = message;
+        let Telegram { sender, receiver: _, message } = message;
         match message {
             Message::Collides => {
                 if sender == PLAYER_ID {
@@ -227,20 +228,20 @@ impl EntityManager {
             }
             self.entities.insert(PLAYER_ID, player);
         }
-        let mut player = self.entities.get_mut(&PLAYER_ID).unwrap();
+        let player = self.entities.get_mut(&PLAYER_ID).unwrap();
         let epsilon = 0.0;
         for (id, collider) in colliding_entites {
             if let Some((enemy_x, enemy_y)) = collider.and_then(|c| Some(c.top_left())) {
                 let (player_x, player_y) = player.collider().and_then(|c| Some(c.top_left())).unwrap();
-                let x = (player_x - enemy_x);
-                let y = (player_y - enemy_y);
+                let x = player_x - enemy_x;
+                let y = player_y - enemy_y;
                 let x_dir = x.signum();
                 let y_dir = y.signum();
                 if x.abs() >= y.abs() {
-                    let dist = 8.0 - x.abs() + epsilon;
+                    let dist = SPRITE_SIZE_F32 - x.abs() + epsilon;
                     player.set_pos(player_x + x_dir * dist, player_y);
                 } else {
-                    let dist = 8.0 - y.abs() + epsilon;
+                    let dist = SPRITE_SIZE_F32 - y.abs() + epsilon;
                     player.set_pos(player_x , player_y + y_dir * dist);
                 }
             }

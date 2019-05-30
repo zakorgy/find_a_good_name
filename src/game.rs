@@ -1,6 +1,6 @@
-use super::entity::{Door, Enemy, Entity, EntityId, EntityManager, MessageDispatcher, Player, Telegram, Message};
+use super::entity::{Door, Enemy, EntityManager, MessageDispatcher, Player, Telegram, Message};
 use super::entity::PLAYER_ID;
-use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS};
+use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS, SPRITE_SIZE_U32};
 use super::input::{Key, KeyBoard};
 use super::level::{Level, RoomId};
 use piston_window::generic_event::GenericEvent;
@@ -13,13 +13,14 @@ use std::rc::Rc;
 
 static EXIT_KEY: &'static Key = &Key::Escape;
 static PAUSE_KEY: &'static Key = &Key::Space;
+const OFFSET_FROM_DOOR: f32 = 6.0;
 
 #[derive(Debug)]
 enum GameState {
     Start,
     Running,
     Pause,
-    LoadLevel,
+    _LoadLevel,
     LoadRoom(RoomId, bool),
     End,
 }
@@ -108,34 +109,34 @@ impl Game {
                     let prev_id = self.level.current_room_id();
                     self.level.set_current_room(id);
                     self.entity_manager.clean_up();
-                    let midle_point = self.level.current_room().spawn_point();
-                    let spawn_point = if game_start {
+                    let midle_point = self.level.current_room().middle_point();
+                    let enter_point = if game_start {
                         midle_point
                     } else {
                         let pos = self.level.current_room().load_info.doors.iter().find(|i| {
-                            if let Some(((pos), room_id)) = i {
+                            if let Some((_, room_id)) = i {
                                 if *room_id == prev_id {
                                     return true;
                                 }
                             }
                             false
                         }).unwrap().unwrap().0;
-                        let mut pos = ((pos.0 * 8) as f32, (pos.1 * 8 ) as f32);
+                        let mut pos = ((pos.0 * SPRITE_SIZE_U32) as f32, (pos.1 * SPRITE_SIZE_U32) as f32);
                         if (midle_point.0 - pos.0) > 0.0 {
-                            pos.0 += 6.0;
+                            pos.0 += OFFSET_FROM_DOOR;
                         } else if (midle_point.0 - pos.0) < 0.0 {
-                            pos.0 -= 6.0;
+                            pos.0 -= OFFSET_FROM_DOOR;
                         }
 
                         if (midle_point.1 - pos.1) > 0.0 {
-                            pos.1 += 6.0;
+                            pos.1 += OFFSET_FROM_DOOR;
                         } else if (midle_point.1 - pos.1) < 0.0 {
-                            pos.1 -= 6.0;
+                            pos.1 -= OFFSET_FROM_DOOR;
                         }
                         pos
                     };
 
-                    self.entity_manager.get_entity_mut(&PLAYER_ID).set_pos(spawn_point.0, spawn_point.1);
+                    self.entity_manager.get_entity_mut(&PLAYER_ID).set_pos(enter_point.0, enter_point.1);
                     self.x_offset = 0;
                     self.y_offset = 0;
                     let enemy = Box::new(Enemy::new(
@@ -222,7 +223,7 @@ impl Game {
             self.pause();
         }
 
-        while let Some(Telegram {sender, receiver, message}) = self.dispatcher.poll_game_message() {
+        while let Some(Telegram {sender: _, receiver: _, message}) = self.dispatcher.poll_game_message() {
             match message {
                 Message::LoadRoom(id) => {
                     self.state = GameState::LoadRoom(id, false);

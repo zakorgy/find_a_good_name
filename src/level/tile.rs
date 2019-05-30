@@ -1,5 +1,5 @@
 use super::super::graphics::{
-    Screen, Sprite, CURRENT_ROOM, DOOR, GRASSES, GROUNDS, NO_ROOM, ROOM, VOID, WALLS, WALL_TOPS,
+    Screen, Sprite, CURRENT_ROOM, DOOR, GRASSES, GROUNDS, NO_ROOM, ROOM, VOID, WALLS, WALL_TOPS, SPRITE_SIZE_SHIFT_VALUE,
 };
 
 lazy_static! {
@@ -36,6 +36,6 @@ impl Tile {
     }
 
     pub fn render(&self, x: i32, y: i32, screen: &mut Screen) {
-        screen.render_tile(x << 3, y << 3, &self);
+        screen.render_tile(x<< SPRITE_SIZE_SHIFT_VALUE, y<< SPRITE_SIZE_SHIFT_VALUE, &self);
     }
 }

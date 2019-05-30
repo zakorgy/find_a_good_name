@@ -5,8 +5,11 @@ use super::room::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+pub const MAP_GRID_SIZE: usize = 9;
+pub const MAP_GRID_SIZE_MINUS_ONE: usize = 8;
+
 struct LevelBuilder {
-    rooms: [[Option<RoomBuilder>; 9]; 9],
+    rooms: [[Option<RoomBuilder>; MAP_GRID_SIZE]; MAP_GRID_SIZE],
     taken_positions: HashMap<(i32, i32), RoomId>,
     possible_positions: Vec<(i32, i32)>,
     number_of_rooms: usize,
@@ -26,7 +29,7 @@ impl LevelBuilder {
     //(don't forget, we already have a starter room!)
 
     pub fn new() -> LevelBuilder {
-        let start_pos = (4, 4);
+        let start_pos = (MAP_GRID_SIZE as i32 / 2, MAP_GRID_SIZE as i32 / 2);
         let mut builder = LevelBuilder {
             rooms: Default::default(),
             taken_positions: std::iter::once((start_pos, 0)).collect(),
@@ -55,7 +58,7 @@ impl LevelBuilder {
     fn free_neighbour_positions(&self, pos: (i32, i32)) -> Vec<(i32, i32)> {
         let mut free_positions = Vec::new();
         for x in [pos.0 - 1, pos.0 + 1].into_iter() {
-            if *x < 0 || *x > 8 {
+            if *x < 0 || *x > MAP_GRID_SIZE_MINUS_ONE as i32 {
                 continue;
             }
             let y = pos.1;
@@ -64,7 +67,7 @@ impl LevelBuilder {
             }
         }
         for y in [pos.1 - 1, pos.1 + 1].into_iter() {
-            if *y < 0 || *y > 8 {
+            if *y < 0 || *y > MAP_GRID_SIZE_MINUS_ONE as i32 {
                 continue;
             }
             let x = pos.0;
@@ -79,11 +82,11 @@ impl LevelBuilder {
         self.create_rooms();
         self.set_room_doors();
 
-        let mut map_grid = [[false; 9]; 9];
+        let mut map_grid = [[false; MAP_GRID_SIZE]; MAP_GRID_SIZE];
         let mut rooms = HashMap::new();
 
-        for x in 0..9 {
-            for y in 0..9 {
+        for x in 0..MAP_GRID_SIZE {
+            for y in 0..MAP_GRID_SIZE {
                 if let Some(room) = std::mem::replace(&mut self.rooms[x][y], None) {
                     map_grid[x][y] = true;
                     let (id, room) = room.build();
@@ -157,8 +160,8 @@ impl LevelBuilder {
     }
 
     fn set_room_doors(&mut self) {
-        for x in 0..9 {
-            for y in 0..9 {
+        for x in 0..MAP_GRID_SIZE {
+            for y in 0..MAP_GRID_SIZE {
                 if let Some(ref mut room) = self.rooms[x][y] {
                     let xi = x as i32;
                     let yi = y as i32;
@@ -181,7 +184,7 @@ impl LevelBuilder {
 }
 
 pub struct Level {
-    pub map_grid: [[bool; 9]; 9],
+    pub map_grid: [[bool; MAP_GRID_SIZE]; MAP_GRID_SIZE],
     rooms: HashMap<RoomId, Room>,
     current: RoomId,
 }
@@ -222,6 +225,6 @@ impl Level {
 }
 
 pub struct MapInfo<'a> {
-    pub map_grid: &'a [[bool; 9]; 9],
+    pub map_grid: &'a [[bool; MAP_GRID_SIZE]; MAP_GRID_SIZE],
     pub current_grid_pos: (i32, i32),
 }

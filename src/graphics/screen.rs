@@ -1,6 +1,6 @@
-use super::super::level::{MapInfo, Tile, CURRENT_ROOM_TILE, NO_ROOM_TILE, ROOM_TILE};
+use super::super::level::{MapInfo, Tile, CURRENT_ROOM_TILE, NO_ROOM_TILE, ROOM_TILE, MAP_GRID_SIZE};
+use super::super::graphics::{HALF_SPRITE_SIZE_SHIFT_VALUE};
 use image::GenericImageView;
-use rand::Rng;
 
 pub struct Screen {
     pub width: u32,
@@ -13,15 +13,6 @@ pub struct Screen {
 impl Screen {
     pub fn new(width: u32, height: u32) -> Screen {
         let canvas = image::RgbaImage::new(width, height);
-        let mut tiles = Vec::with_capacity(64 * 64);
-        for _ in 0..(64 * 64) {
-            tiles.push([
-                rand::thread_rng().gen_range(0, 255),
-                rand::thread_rng().gen_range(0, 255),
-                rand::thread_rng().gen_range(0, 255),
-                255,
-            ]);
-        }
         Screen {
             width,
             height,
@@ -51,27 +42,27 @@ impl Screen {
         use image::GenericImage;
         let x_start = 41;
         let y_start = 0;
-        for x in 0..9 {
-            for y in 0..9 {
+        for x in 0..MAP_GRID_SIZE {
+            for y in 0..MAP_GRID_SIZE {
                 if map_info.map_grid[x][y] {
                     if (x as i32, y as i32) == map_info.current_grid_pos {
                         self.canvas.copy_from(
                             &CURRENT_ROOM_TILE.sprite.view(),
-                            x_start + (x as u32) << 2,
-                            y_start + (y as u32) << 2,
+                            x_start + (x as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
+                            y_start + (y as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
                         );
                     } else {
                         self.canvas.copy_from(
                             &ROOM_TILE.sprite.view(),
-                            x_start + (x as u32) << 2,
-                            y_start + (y as u32) << 2,
+                            x_start + (x as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
+                            y_start + (y as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
                         );
                     }
                 } else {
                     self.canvas.copy_from(
                         &NO_ROOM_TILE.sprite.view(),
-                        x_start + (x as u32) << 2,
-                        y_start + (y as u32) << 2,
+                        x_start + (x as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
+                        y_start + (y as u32) << HALF_SPRITE_SIZE_SHIFT_VALUE,
                     );
                 }
             }

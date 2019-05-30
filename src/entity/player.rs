@@ -1,4 +1,5 @@
 use super::super::graphics::image::{GenericImageView, Rgba};
+use super::super::graphics::{SPRITE_SIZE_SHIFT_VALUE};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Room;
@@ -47,10 +48,10 @@ impl Player {
     fn collision(&self, room: &Room, x_offset: f32, y_offset: f32) -> bool {
         let x = (self.x + x_offset) as i32;
         let y = (self.y + y_offset) as i32;
-        let x0 = x /*+ 1*/ >> 3;
-        let y0 = y >> 3;
-        let x7 = (x + 7) >> 3;
-        let y7 = (y + 7) >> 3;
+        let x0 = x >> SPRITE_SIZE_SHIFT_VALUE;
+        let y0 = y >> SPRITE_SIZE_SHIFT_VALUE;
+        let x7 = (x + self.sprite.size() as i32 - 1) >> SPRITE_SIZE_SHIFT_VALUE;
+        let y7 = (y + self.sprite.size() as i32 - 1) >> SPRITE_SIZE_SHIFT_VALUE;
         match self.direction {
             Direction::Up => room.get_tile(x0, y0).solid || room.get_tile(x7, y0).solid,
             Direction::Down => room.get_tile(x0, y7).solid || room.get_tile(x7, y7).solid,
@@ -147,7 +148,7 @@ impl Entity for Player {
                         continue;
                     }
                 }
-                let pixel = match pixels.get_pixel(if self.flipped { 7 - x } else { x }, y) {
+                let pixel = match pixels.get_pixel(if self.flipped { self.sprite.size() - 1 - x } else { x }, y) {
                     Rgba {
                         data: [255, 0, 255, 255],
                     } => continue,
@@ -196,8 +197,7 @@ impl Entity for Player {
         self.id
     }
 
-    fn handle_message(&mut self, message: Telegram, dispatcher: &mut MessageDispatcher) {
-        let Telegram { sender, receiver, message } = message;
+    fn handle_message(&mut self, _message: Telegram, _dispatcher: &mut MessageDispatcher) {
     }
 
     fn set_pos(&mut self, x: f32, y: f32) {

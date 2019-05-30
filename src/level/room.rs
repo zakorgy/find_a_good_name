@@ -1,10 +1,11 @@
 use super::super::graphics::image;
-use super::super::graphics::Screen;
+use super::super::graphics::{Screen, SPRITE_SIZE_U32, SPRITE_SIZE_SHIFT_VALUE};
 use rand::Rng;
 use std::convert::From;
 use std::default::Default;
 use std::path::PathBuf;
 
+const MAX_NEIGHBOUR: usize = 4;
 pub(crate) type RoomId = u8;
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
@@ -59,7 +60,7 @@ impl From<u32> for Tiles {
 
 #[derive(Default)]
 pub struct RoomBuilder {
-    neighbours: [Neighbour; 4],
+    neighbours: [Neighbour; MAX_NEIGHBOUR],
     room_type: RoomType,
     grid_pos: (i32, i32),
     path: PathBuf,
@@ -69,7 +70,7 @@ pub struct RoomBuilder {
 impl RoomBuilder {
     pub fn new() -> RoomBuilder {
         RoomBuilder {
-            neighbours: [Neighbour::Invalid; 4],
+            neighbours: [Neighbour::Invalid; MAX_NEIGHBOUR],
             room_type: RoomType::Normal,
             grid_pos: (0, 0),
             path: Default::default(),
@@ -154,8 +155,6 @@ impl RoomBuilder {
                             idx = i;
                         }
                     }
-                    /*let mut first_empty = load_info.doors.iter_mut().find(|i| i.is_none()).unwrap();
-                    first_empty = &mut Some((north_pos, *id));*/
                     possible_door_positions.remove(idx);
                     tiles[(north_pos.1 * width + north_pos.0) as usize] = Tiles::Door;
                     load_info.doors[0] = Some((north_pos, *id));
@@ -170,8 +169,6 @@ impl RoomBuilder {
                             idx = i;
                         }
                     }
-                    /*let mut first_empty = load_info.doors.iter_mut().find(|i| i.is_none()).unwrap();
-                    first_empty = &mut Some((east_pos, *id));*/
                     possible_door_positions.remove(idx);
                     tiles[(east_pos.1 * width + east_pos.0) as usize] = Tiles::Door;
                     load_info.doors[1] = Some((east_pos, *id));
@@ -186,8 +183,6 @@ impl RoomBuilder {
                             idx = i;
                         }
                     }
-                    /*let mut first_empty = load_info.doors.iter_mut().find(|i| i.is_none()).unwrap();
-                    first_empty = &mut Some((south_pos, *id));*/
                     possible_door_positions.remove(idx);
                     tiles[(south_pos.1 * width + south_pos.0) as usize] = Tiles::Door;
                     load_info.doors[2] = Some((south_pos, *id));
@@ -202,8 +197,6 @@ impl RoomBuilder {
                             idx = i;
                         }
                     }
-                    /*let mut first_empty = load_info.doors.iter_mut().find(|i| i.is_none()).unwrap();
-                    first_empty = &mut Some((west_pos, *id));*/
                     possible_door_positions.remove(idx);
                     tiles[(west_pos.1 * width + west_pos.0) as usize] = Tiles::Door;
                     load_info.doors[3] = Some((west_pos, *id));
@@ -227,13 +220,13 @@ impl RoomBuilder {
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct LoadInfo {
-    pub doors: [Option<((u32, u32), RoomId)>; 4],
+    pub doors: [Option<((u32, u32), RoomId)>; MAX_NEIGHBOUR],
 }
 
 pub struct Room {
     pub width: i32,
     pub height: i32,
-    pub neighbours: [Neighbour; 4],
+    pub neighbours: [Neighbour; MAX_NEIGHBOUR],
     pub tiles: Vec<Tiles>,
     pub room_type: RoomType,
     pub grid_pos: (i32, i32),
@@ -241,14 +234,14 @@ pub struct Room {
 }
 
 impl Room {
-    pub fn update(&mut self) {}
+    //pub fn update(&mut self) {}
 
     pub fn render(&self, x_scroll: i32, y_scroll: i32, screen: &mut Screen) {
         screen.set_offset(x_scroll, y_scroll);
-        let x0 = x_scroll >> 3;
-        let x1 = (x_scroll + screen.width as i32) >> 3;
-        let y0 = y_scroll >> 3;
-        let y1 = (y_scroll + screen.height as i32) >> 3;
+        let x0 = x_scroll >> SPRITE_SIZE_SHIFT_VALUE;
+        let x1 = (x_scroll + screen.width as i32) >> SPRITE_SIZE_SHIFT_VALUE;
+        let y0 = y_scroll >> SPRITE_SIZE_SHIFT_VALUE;
+        let y1 = (y_scroll + screen.height as i32) >> SPRITE_SIZE_SHIFT_VALUE;
 
         for y in y0..=y1 {
             for x in x0..=x1 {
@@ -277,10 +270,10 @@ impl Room {
     }
 
     pub fn dimensions(&self) -> (i32, i32) {
-        (self.width * 8, self.height * 8)
+        (self.width * SPRITE_SIZE_U32 as i32, self.height * SPRITE_SIZE_U32 as i32)
     }
 
-    pub fn spawn_point(&self) -> (f32, f32) {
+    pub fn middle_point(&self) -> (f32, f32) {
         for (i, tile) in self.tiles.iter().enumerate() {
             if let Tiles::SpawnPoint(_) = tile {
                 return (
