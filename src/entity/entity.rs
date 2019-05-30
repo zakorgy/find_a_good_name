@@ -17,7 +17,7 @@ const EPSILON: f32 = 0.5;
 
 
 pub trait Entity {
-    fn update(&mut self, room: &Room);
+    fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher);
     fn move_entity(&mut self, x: f32, y: f32, room: &Room) {}
     fn render(&self, screen: &mut Screen, x_offset: f32, y_offset: f32);
     fn remove(&mut self);
@@ -110,7 +110,7 @@ impl<'a> From<&'a ((u32, u32), RoomId)> for Door {
 }
 
 impl Entity for Door {
-    fn update(&mut self, room: &Room) {}
+    fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {}
 
     fn move_entity(&mut self, x: f32, y: f32, room: &Room) {}
 
@@ -171,6 +171,7 @@ pub struct Telegram {
 #[derive(Debug, Copy, Clone)]
 pub enum Message {
     LoadRoom(RoomId),
+    SpawnEntity((f32, f32)),
     Collides,
 }
 
@@ -203,9 +204,9 @@ impl EntityManager {
         self.entities.retain(|&k, _| k == PLAYER_ID);
     }
 
-    pub fn update(&mut self, room: &Room) {
+    pub fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {
         for entity in self.entities.values_mut() {
-            entity.update(room);
+            entity.update(room, dispatcher);
         }
     }
 
@@ -291,6 +292,13 @@ impl MessageDispatcher {
         if receiver == GAME_ID {
             self.messages_to_game.push_back(telegram);
             return;
+        } else if receiver == ENTITY_MANAGER_ID {
+            match message {
+                Message::SpawnEntity(pos) => {
+                    println!("Spawn entity at pos {:?}", pos);
+                },
+                _ => unreachable!("Entity manager can't handle message of type {:?}", message),
+            }
         } else {
             self.messages.push_back(telegram);
         }

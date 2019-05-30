@@ -6,7 +6,7 @@ use super::level::{Level, RoomId};
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
 use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
-use piston_window::{PistonWindow, WindowSettings};
+use piston_window::{AdvancedWindow, PistonWindow, WindowSettings};
 use std::boxed::Box;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -51,6 +51,7 @@ impl Game {
                 .build()
                 .unwrap();
 
+        window.set_capture_cursor(true);
         let screen = Screen::new(width, height);
 
         let texture: G2dTexture = Texture::from_image(
@@ -235,7 +236,7 @@ impl Game {
         self.dispatcher.dispatch_messages(&mut self.entity_manager);
         self.level.update();
         self.update_offsets();
-        self.entity_manager.update(&self.level.current_room());
+        self.entity_manager.update(&self.level.current_room(), &mut self.dispatcher);
     }
 
     fn update_offsets(&mut self) {

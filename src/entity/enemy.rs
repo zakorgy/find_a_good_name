@@ -1,7 +1,7 @@
 use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::level::Room;
-use super::entity::{Collider, Direction, Entity, EntityId, INVALID_ID};
+use super::entity::{Collider, Direction, Entity, EntityId, MessageDispatcher, INVALID_ID};
 
 pub struct Enemy {
     x: f32,
@@ -32,7 +32,7 @@ impl Enemy {
 }
 
 impl Entity for Enemy {
-    fn update(&mut self, room: &Room) {
+    fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {
         self.sprite.update()
     }
 

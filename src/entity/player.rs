@@ -3,8 +3,10 @@ use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Room;
 use super::entity::{Collider, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram};
+use super::entity::{PLAYER_ID, ENTITY_MANAGER_ID};
 use std::cell::RefCell;
 use std::rc::Rc;
+use piston::input::Key;
 
 pub struct Player {
     x: f32,
@@ -80,7 +82,7 @@ impl Entity for Player {
         }
     }
 
-    fn update(&mut self, room: &Room) {
+    fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {
         self.collides = false;
         let (mut xa, mut ya) = (0.0, 0.0);
         if self.keyboard.borrow().up {
@@ -94,6 +96,11 @@ impl Entity for Player {
         }
         if self.keyboard.borrow().right {
             xa += self.speed
+        }
+
+        if self.keyboard.borrow().keys.contains(&Key::W) {
+            println!("W pressed, create new projectile");
+            dispatcher.queue_message(PLAYER_ID, ENTITY_MANAGER_ID, Message::SpawnEntity((self.x, self.y)));
         }
         let mut update_sprite = false;
         if xa != 0.0 {
