@@ -1,7 +1,7 @@
 use super::super::graphics::image::{GenericImageView, Rgba};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::level::Room;
-use super::entity::{Collider, Direction, Entity, EntityId, MessageDispatcher, INVALID_ID};
+use super::entity::{Collider, CollisionKind, Direction, Entity, EntityId, MessageDispatcher, INVALID_ID};
 use cgmath::Vector2;
 
 pub struct Enemy {
@@ -68,7 +68,7 @@ impl Entity for Enemy {
                     } => continue,
                     pixel => pixel,
                 };
-                screen.canvas.put_pixel(xp as u32, yp as u32, pixel);
+                screen.put_pixel(xp as u32, yp as u32, pixel);
             }
         }
     }
@@ -91,7 +91,11 @@ impl Entity for Enemy {
 
     fn collider(&self) -> Option<Collider> {
         let sprite_size = self.sprite.size() as f32;
-        Some(Collider::new(self.position, (sprite_size, sprite_size).into()))
+        Some(Collider::new(
+            self.position,
+            (sprite_size, sprite_size).into(),
+            CollisionKind::Hostile,
+        ))
     }
 
     fn id(&self) -> EntityId {

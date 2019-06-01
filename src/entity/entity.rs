@@ -2,6 +2,7 @@ use super::super::graphics::Screen;
 use super::super::graphics::{SPRITE_SIZE_U32, SPRITE_SIZE_F32};
 use super::super::level::{Room, RoomId};
 use cgmath::Vector2;
+use super::Projectile;
 
 use std::boxed::Box;
 use std::collections::{HashMap, VecDeque};
@@ -50,17 +51,25 @@ pub enum Direction {
     Right,
 }
 
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+pub enum CollisionKind {
+    Friendly,
+    Hostile,
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct Collider {
     pub origin: Vector2<f32>,
     pub dimensions: Vector2<f32>,
+    pub kind: CollisionKind,
 }
 
 impl Collider {
-    pub fn new(origin: Vector2<f32>, dimensions: Vector2<f32>) -> Collider {
+    pub fn new(origin: Vector2<f32>, dimensions: Vector2<f32>, kind: CollisionKind) -> Collider {
         Collider {
             origin,
             dimensions,
+            kind,
         }
     }
 
@@ -86,6 +95,8 @@ impl Collider {
     pub fn origin(&self) -> Vector2<f32> {
         self.origin
     }
+
+    pub fn hostile(&self) -> bool { self.kind == CollisionKind::Hostile }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -102,7 +113,11 @@ static DOOR_COLLIDER_OFFSET: Vector2<f32> = Vector2::new(SPRITE_SIZE_F32 / 2., S
 impl<'a> From<&'a (Vector2<u32>, RoomId)> for Door {
     fn from(info: &(Vector2<u32>, RoomId)) -> Self {
         Door {
-            collider: Collider::new((info.0 * SPRITE_SIZE_U32).cast().unwrap() + DOOR_COLLIDER_OFFSET, DOOR_COLLIDER_DIMS),
+            collider: Collider::new(
+                (info.0 * SPRITE_SIZE_U32).cast().unwrap() + DOOR_COLLIDER_OFFSET,
+                DOOR_COLLIDER_DIMS,
+                CollisionKind::Hostile,
+            ),
             id: INVALID_ID,
             room: info.1,
             removed: false,
@@ -170,7 +185,7 @@ pub struct Telegram {
 #[derive(Debug, Copy, Clone)]
 pub enum Message {
     LoadRoom(RoomId),
-    SpawnEntity((f32, f32)),
+    SpawnEntity(Vector2<f32>, Vector2<f32>, f32),
     Collides,
 }
 
@@ -198,15 +213,32 @@ impl EntityManager {
         self.entities.insert(id, entity);
     }
 
+    pub fn handle_message(&mut self, message: Telegram, dispatcher: &mut MessageDispatcher) {
+        let Telegram { sender, receiver: _, message } = message;
+        match message {
+            Message::SpawnEntity(position, heading, speed) => {
+                let mut projectile = Projectile::new(
+                    position,
+                    heading,
+                    speed,
+                    INVALID_ID,
+                );
+                self.add_entity(Box::new(projectile));
+            }
+            _ => {}
+        }
+    }
+
     // TODO: this is just a temporary solution
     pub fn clean_up(&mut self) {
         self.entities.retain(|&k, _| k == PLAYER_ID);
     }
 
     pub fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {
-        for entity in self.entities.values_mut() {
+        self.entities.retain(|id, entity| {
             entity.update(room, dispatcher);
-        }
+            !entity.is_removed()
+        });
     }
 
     pub fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
@@ -260,20 +292,26 @@ impl EntityManager {
 }
 
 pub struct MessageDispatcher {
-    messages_to_game: VecDeque<Telegram>,
+    game_messages: VecDeque<Telegram>,
+    entity_messages: VecDeque<Telegram>,
     messages: VecDeque<Telegram>,
 }
 
 impl MessageDispatcher {
     pub fn new() -> Self {
         MessageDispatcher {
-            messages_to_game : VecDeque::new(),
+            game_messages: VecDeque::new(),
+            entity_messages: VecDeque::new(),
             messages : VecDeque::new(),
         }
     }
 
     pub fn poll_game_message(&mut self) -> Option<Telegram> {
-        self.messages_to_game.pop_front()
+        self.game_messages.pop_front()
+    }
+
+    pub fn poll_entity_message(&mut self) -> Option<Telegram> {
+        self.entity_messages.pop_front()
     }
 
     fn discharge(&mut self, manager: &mut EntityManager, message: Telegram) {
@@ -289,15 +327,11 @@ impl MessageDispatcher {
         };
 
         if receiver == GAME_ID {
-            self.messages_to_game.push_back(telegram);
+            self.game_messages.push_back(telegram);
             return;
         } else if receiver == ENTITY_MANAGER_ID {
-            match message {
-                Message::SpawnEntity(pos) => {
-                    println!("Spawn entity at pos {:?}", pos);
-                },
-                _ => unreachable!("Entity manager can't handle message of type {:?}", message),
-            }
+            self.entity_messages.push_back(telegram);
+            return;
         } else {
             self.messages.push_back(telegram);
         }

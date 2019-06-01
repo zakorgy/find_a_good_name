@@ -56,7 +56,7 @@ impl Game {
 
         let texture: G2dTexture = Texture::from_image(
             &mut window.factory,
-            &screen.canvas,
+            &screen.canvas(),
             &TextureSettings::new().mag(Filter::Nearest),
         )
         .unwrap();
@@ -225,6 +225,10 @@ impl Game {
             }
         }
 
+        while let Some(message) = self.dispatcher.poll_entity_message() {
+            self.entity_manager.handle_message(message, &mut self.dispatcher);
+        }
+
         self.entity_manager.check_collisions(&mut self.dispatcher);
         self.dispatcher.dispatch_messages(&mut self.entity_manager);
         self.level.update();
@@ -268,7 +272,7 @@ impl Game {
         self.entity_manager.render(&mut self.screen, self.offset.cast().unwrap());
         self.screen.render_map(self.level.map_info());
         self.texture
-            .update(&mut self.window.encoder, &self.screen.canvas)
+            .update(&mut self.window.encoder, &self.screen.canvas())
             .unwrap();
         let ref texture = self.texture;
         let scale = self.scale as f64;

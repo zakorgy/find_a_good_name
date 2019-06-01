@@ -1,9 +1,9 @@
 use super::super::graphics::image::{GenericImageView, Rgba};
-use super::super::graphics::{SPRITE_SIZE_SHIFT_VALUE};
+use super::super::graphics::{SPRITE_SIZE_SHIFT_VALUE, SPRITE_SIZE_F32};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Room;
-use super::entity::{Collider, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram};
+use super::entity::{Collider, CollisionKind, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram};
 use super::entity::{PLAYER_ID, ENTITY_MANAGER_ID};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -58,17 +58,19 @@ impl Player {
             Direction::Left => room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy0.x, xy7.y).solid,
         }
     }
+
+    fn middle_point(&self) -> Vector2<f32> {
+        self.position + Vector2::new(SPRITE_SIZE_F32 / 2., SPRITE_SIZE_F32 / 2.)
+    }
 }
 
 impl Entity for Player {
     fn move_entity(&mut self, distance: Vector2<f32>, room: &Room) {
         if distance.x < 0.0 {
             self.direction = Direction::Left;
-            self.flipped = true;
         }
         if distance.x > 0.0 {
             self.direction = Direction::Right;
-            self.flipped = false;
         }
         if distance.y < 0.0 {
             self.direction = Direction::Up;
@@ -97,9 +99,28 @@ impl Entity for Player {
             xa += self.speed
         }
 
+        let mut proj_heading = None;
         if self.keyboard.borrow().keys.contains(&Key::W) {
-            println!("W pressed, create new projectile");
-            dispatcher.queue_message(PLAYER_ID, ENTITY_MANAGER_ID, Message::SpawnEntity((self.position.x, self.position.x)));
+            proj_heading = Some((0., -1.).into());
+        }
+        if self.keyboard.borrow().keys.contains(&Key::S) {
+            proj_heading = Some((0., 1.).into());
+        }
+        if self.keyboard.borrow().keys.contains(&Key::A) {
+            proj_heading = Some((-1., 0.).into());
+            self.flipped = true;
+        }
+        if self.keyboard.borrow().keys.contains(&Key::D) {
+            proj_heading = Some((1., 0.).into());
+            self.flipped = false;
+        }
+
+        if let Some(heading) = proj_heading {
+            dispatcher.queue_message(
+                PLAYER_ID,
+                ENTITY_MANAGER_ID,
+                Message::SpawnEntity(self.middle_point(), heading, 4.0),
+            );
         }
         let mut update_sprite = false;
         if xa != 0.0 {
@@ -136,7 +157,7 @@ impl Entity for Player {
                         || x == 0
                         || x == self.sprite.size() - 1
                     {
-                        screen.canvas.put_pixel(
+                        screen.put_pixel(
                             xp as u32,
                             yp as u32,
                             Rgba {
@@ -152,7 +173,7 @@ impl Entity for Player {
                     } => continue,
                     pixel => pixel,
                 };
-                screen.canvas.put_pixel(xp as u32, yp as u32, pixel);
+                screen.put_pixel(xp as u32, yp as u32, pixel);
             }
         }
     }
@@ -175,14 +196,20 @@ impl Entity for Player {
 
     fn collider(&self) -> Option<Collider> {
         let sprite_size = self.sprite.size() as f32;
-        Some(Collider::new(self.position, (sprite_size, sprite_size).into()))
+        Some(Collider::new(
+            self.position,
+            (sprite_size, sprite_size).into(),
+            CollisionKind::Friendly,
+        ))
     }
 
     fn collides_with(&mut self, other: &Option<Collider>) -> bool {
         if let Some(ref collider) = other {
-            let collides = self.collider().unwrap().intersects(collider);
-            self.collides |= collides;
-            return collides;
+            if collider.hostile() {
+                let collides = self.collider().unwrap().intersects(collider);
+                self.collides |= collides;
+                return collides;
+            }
         }
         false
     }

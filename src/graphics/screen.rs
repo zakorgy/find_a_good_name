@@ -6,7 +6,7 @@ use cgmath::Vector2;
 pub struct Screen {
     pub dimensions: Vector2<u32>,
     offset: Vector2<i32>,
-    pub canvas: image::RgbaImage,
+    canvas: image::RgbaImage,
 }
 
 impl Screen {
@@ -17,6 +17,17 @@ impl Screen {
             offset: (0, 0).into(),
             canvas,
         }
+    }
+
+    pub fn put_pixel(&mut self, x: u32, y: u32, pixel: image::Rgba<u8>) {
+        if x < 0 || x >= self.dimensions.x || y < 0 || y >= self.dimensions.y {
+            return;
+        }
+        self.canvas.put_pixel(x, y, pixel);
+    }
+
+    pub fn canvas(&self) -> &image::RgbaImage {
+        &self.canvas
     }
 
     pub fn render_tile(&mut self, mut position: Vector2<i32>, tile: &Tile) {
