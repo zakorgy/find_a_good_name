@@ -51,7 +51,7 @@ impl Game {
                 .build()
                 .unwrap();
 
-        window.set_capture_cursor(true);
+        window.window.window.hide_cursor(true);
         let screen = Screen::new(width, height);
 
         let texture: G2dTexture = Texture::from_image(
@@ -271,6 +271,15 @@ impl Game {
         self.level.render(self.offset, &mut self.screen);
         self.entity_manager.render(&mut self.screen, self.offset.cast().unwrap());
         self.screen.render_map(self.level.map_info());
+        let pos = self.window.window.get_position().unwrap();
+        //println!("win pos {:?}", pos);
+        self.screen.put_pixel(
+            (self.keyboard.borrow().mouse_pos.x) as u32 / 6, 
+            (self.keyboard.borrow().mouse_pos.y) as u32 / 6,
+            image::Rgba {
+                data: [255, 0, 0, 255],
+            }
+        );
         self.texture
             .update(&mut self.window.encoder, &self.screen.canvas())
             .unwrap();
