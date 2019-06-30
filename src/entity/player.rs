@@ -1,5 +1,5 @@
 use super::super::graphics::image::{GenericImageView, Rgba};
-use super::super::graphics::{SPRITE_SIZE_SHIFT_VALUE, SPRITE_SIZE_F32};
+use super::super::graphics::{SPRITE_SIZE_U32, SPRITE_SIZE_F32};
 use super::super::graphics::{AnimatedSprite, Screen};
 use super::super::input::KeyBoard;
 use super::super::level::Room;
@@ -18,10 +18,10 @@ pub struct Player {
     position: Vector2<f32>,
     speed: f32,
     direction: Direction,
+    shoot_direction: Option<Direction>,
     removed: bool,
-    sprite: AnimatedSprite,
+    sprites: std::collections::HashMap<Direction, AnimatedSprite>,
     collides: bool,
-    flipped: bool,
     id: EntityId,
     keyboard: Rc<RefCell<KeyBoard>>,
 }
@@ -29,7 +29,7 @@ pub struct Player {
 impl Player {
     pub fn new(
         speed: f32,
-        sprite: AnimatedSprite,
+        sprites: Vec<(Direction, AnimatedSprite)>,
         keyboard: Rc<RefCell<KeyBoard>>,
         id: EntityId,
     ) -> Player {
@@ -37,20 +37,21 @@ impl Player {
             position: (0., 0.).into(),
             speed,
             direction: Direction::Right,
+            shoot_direction: None,
             removed: false,
-            sprite,
+            sprites: sprites.into_iter().collect(),
             collides: false,
-            flipped: false,
             id,
             keyboard,
         }
     }
 
     fn collision(&self, room: &Room, offset: Vector2<f32>) -> bool {
-        let xy = (self.position + offset).cast::<i32>().unwrap();
-        let xy0 = right_shift_vec(xy, SPRITE_SIZE_SHIFT_VALUE);
-        let size_minus_one = self.sprite.size() as i32 - 1;
-        let xy7 = right_shift_vec(xy + Vector2::new(size_minus_one, size_minus_one), SPRITE_SIZE_SHIFT_VALUE);
+        let collider = self.collider().unwrap();
+        let xy = (collider.origin + offset).cast::<i32>().unwrap();
+        let xy0 = xy / SPRITE_SIZE_U32 as i32;
+        let size_minus_one = collider.dimensions.x as i32 - 1;
+        let xy7 = (xy + Vector2::new(size_minus_one, size_minus_one)) / SPRITE_SIZE_U32 as i32;
         match self.direction {
             Direction::Up => room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy7.x, xy0.y).solid,
             Direction::Down => room.get_tile(xy0.x, xy7.y).solid || room.get_tile(xy7.x, xy7.y).solid,
@@ -62,21 +63,29 @@ impl Player {
     fn middle_point(&self) -> Vector2<f32> {
         self.position + Vector2::new(SPRITE_SIZE_F32 / 2., SPRITE_SIZE_F32 / 2.)
     }
+
+    fn sprite(&self) -> &AnimatedSprite {
+        &self.sprites[&self.shoot_direction.unwrap_or(self.direction)]
+    }
+
+    fn sprite_mut(&mut self) -> &mut AnimatedSprite {
+        self.sprites.get_mut(&self.shoot_direction.unwrap_or(self.direction)).unwrap()
+    }
 }
 
 impl Entity for Player {
     fn move_entity(&mut self, distance: Vector2<f32>, room: &Room) {
-        if distance.x < 0.0 {
-            self.direction = Direction::Left;
-        }
-        if distance.x > 0.0 {
-            self.direction = Direction::Right;
-        }
         if distance.y < 0.0 {
             self.direction = Direction::Up;
         }
         if distance.y > 0.0 {
             self.direction = Direction::Down;
+        }
+        if distance.x < 0.0 {
+            self.direction = Direction::Left;
+        }
+        if distance.x > 0.0 {
+            self.direction = Direction::Right;
         }
         if !self.collision(&room, distance) {
             self.position += distance;
@@ -99,20 +108,23 @@ impl Entity for Player {
             xa += self.speed
         }
 
+        self.shoot_direction = None;
         let mut proj_heading = None;
         if self.keyboard.borrow().keys.contains(&Key::W) {
+            self.shoot_direction = Some(Direction::Up);
             proj_heading = Some((0., -1.).into());
         }
         if self.keyboard.borrow().keys.contains(&Key::S) {
+            self.shoot_direction = Some(Direction::Down);
             proj_heading = Some((0., 1.).into());
         }
         if self.keyboard.borrow().keys.contains(&Key::A) {
+            self.shoot_direction = Some(Direction::Left);
             proj_heading = Some((-1., 0.).into());
-            self.flipped = true;
         }
         if self.keyboard.borrow().keys.contains(&Key::D) {
+            self.shoot_direction = Some(Direction::Right);
             proj_heading = Some((1., 0.).into());
-            self.flipped = false;
         }
 
         if let Some(heading) = proj_heading {
@@ -123,28 +135,33 @@ impl Entity for Player {
             );
         }
         let mut update_sprite = false;
-        if xa != 0.0 {
-            self.move_entity((xa, 0.0).into(), room);
-            update_sprite = true;
-        }
 
         if ya != 0.0 {
             self.move_entity((0.0, ya).into(), room);
             update_sprite = true;
         }
 
+        if xa != 0.0 {
+            self.move_entity((xa, 0.0).into(), room);
+            update_sprite = true;
+        }
+
         if update_sprite {
-            self.sprite.update();
+            self.sprite_mut().update();
         } else {
-            self.sprite.reset();
+            self.sprite_mut().reset();
         }
     }
 
     fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
-        let pixels = self.sprite.view();
+        let flipped = match self.shoot_direction.unwrap_or(self.direction) {
+            Direction::Left => true,
+            _ => false,
+        };
+        let pixels = self.sprite().view();
         let Vector2 {x: ax, y: ay} = self.relative_pos(offset);
-        for y in 0..self.sprite.size() {
-            for x in 0..self.sprite.size() {
+        for y in 0..self.sprite().size() {
+            for x in 0..self.sprite().size() {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
                 if xp < 0 || xp >= screen.dimensions.x as i32 || yp < 0 || yp >= screen.dimensions.y as i32 {
@@ -153,9 +170,9 @@ impl Entity for Player {
                 #[cfg(feature = "debug_rect")]
                 {
                     if y == 0
-                        || y == self.sprite.size() - 1
+                        || y == self.sprite().size() - 1
                         || x == 0
-                        || x == self.sprite.size() - 1
+                        || x == self.sprite().size() - 1
                     {
                         screen.put_pixel(
                             xp as u32,
@@ -167,7 +184,7 @@ impl Entity for Player {
                         continue;
                     }
                 }
-                let pixel = match pixels.get_pixel(if self.flipped { self.sprite.size() - 1 - x } else { x }, y) {
+                let pixel = match pixels.get_pixel(if flipped { self.sprite().size() - 1 - x } else { x }, y) {
                     Rgba {
                         data: [255, 0, 255, 255],
                     } => continue,
@@ -195,10 +212,10 @@ impl Entity for Player {
     }
 
     fn collider(&self) -> Option<Collider> {
-        let sprite_size = self.sprite.size() as f32;
+        let sprite_size = self.sprite().size() as f32;
         Some(Collider::new(
-            self.position,
-            (sprite_size, sprite_size).into(),
+            self.position + Vector2::new(4.0, 8.0),
+            (8.0, 8.0).into(),
             CollisionKind::Friendly,
         ))
     }

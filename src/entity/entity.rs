@@ -43,7 +43,7 @@ pub trait Entity {
     fn send_message(&self, _message: Message, _receiver: EntityId, _dispatcher: &mut MessageDispatcher) {}
 }
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 pub enum Direction {
     Up,
     Down,
@@ -262,17 +262,23 @@ impl EntityManager {
         let epsilon = 0.0;
         for (id, collider) in colliding_entites {
             if let Some(Vector2 {x: enemy_x, y: enemy_y}) = collider.and_then(|c| Some(c.origin())) {
-                let Vector2 {x: player_x, y: player_y} = player.collider().and_then(|c| Some(c.origin())).unwrap();
-                let x = player_x - enemy_x;
-                let y = player_y - enemy_y;
+                let Vector2 {x: collider_x, y: collider_y} = player.collider().and_then(|c| Some(c.origin())).unwrap();
+                let x = collider_x - enemy_x;
+                let y = collider_y - enemy_y;
                 let x_dir = x.signum();
                 let y_dir = y.signum();
+                let Vector2 {x: player_x, y: player_y} = player.absolute_pos().cast().unwrap();
                 if x.abs() >= y.abs() {
-                    let dist = SPRITE_SIZE_F32 - x.abs() + epsilon;
+                    let dist = SPRITE_SIZE_F32 + 4.0 * x_dir  - x.abs() + epsilon;
                     player.set_pos((player_x + x_dir * dist, player_y).into());
                 } else {
-                    let dist = SPRITE_SIZE_F32 - y.abs() + epsilon;
-                    player.set_pos((player_x , player_y + y_dir * dist).into());
+                    let offset = if y_dir < 0.0 {
+                        8.0 * y_dir
+                    } else {
+                        0.0
+                    };
+                    let dist = SPRITE_SIZE_F32 + offset - y.abs() + epsilon;
+                    player.set_pos((player_x, player_y + y_dir * dist).into());
                 }
             }
             dispatcher.queue_message(PLAYER_ID, id, Message::Collides);

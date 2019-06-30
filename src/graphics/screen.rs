@@ -1,4 +1,5 @@
 use super::super::level::{MapInfo, Tile, CURRENT_ROOM_TILE, NO_ROOM_TILE, ROOM_TILE, MAP_GRID_SIZE};
+use super::super::entity::Direction;
 use super::super::graphics::{HALF_SPRITE_SIZE_SHIFT_VALUE};
 use image::GenericImageView;
 use cgmath::Vector2;
@@ -30,7 +31,7 @@ impl Screen {
         &self.canvas
     }
 
-    pub fn render_tile(&mut self, mut position: Vector2<i32>, tile: &Tile) {
+    pub fn render_tile(&mut self, mut position: Vector2<i32>, tile: &Tile, orientation: Direction) {
         position -= self.offset;
         for y in 0..tile.sprite.size {
             let ya = y as i32 + position.y;
@@ -39,8 +40,14 @@ impl Screen {
                 if xa < 0 || xa >= self.dimensions.x as i32 || ya < 0 || ya >= self.dimensions.y as i32 {
                     continue;
                 }
+                let (pixel_x, pixel_y) = match orientation {
+                    Direction::Up => (x, y),
+                    Direction::Down => (x, tile.sprite.size - 1 - y),
+                    Direction::Left => (y, x),
+                    Direction::Right => (y, tile.sprite.size - 1 - x),
+                };
                 self.canvas
-                    .put_pixel(xa as u32, ya as u32, tile.sprite.view().get_pixel(x, y))
+                    .put_pixel(xa as u32, ya as u32, tile.sprite.view().get_pixel(pixel_x, pixel_y))
             }
         }
     }
@@ -49,7 +56,7 @@ impl Screen {
         use image::GenericImage;
         let x_start = 41;
         let y_start = 0;
-        for x in 0..MAP_GRID_SIZE {
+        /*for x in 0..MAP_GRID_SIZE {
             for y in 0..MAP_GRID_SIZE {
                 if map_info.map_grid[x][y] {
                     if (x as i32, y as i32) == map_info.current_grid_pos.into() {
@@ -73,7 +80,7 @@ impl Screen {
                     );
                 }
             }
-        }
+        }*/
     }
 
     pub fn clear(&mut self) {

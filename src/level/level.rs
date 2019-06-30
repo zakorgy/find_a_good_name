@@ -42,7 +42,7 @@ impl LevelBuilder {
         let start_room = RoomBuilder::new()
             .with_grid_pos(start_pos)
             .with_room_type(RoomType::Start)
-            .with_path(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/room1.png"))
+            .with_path(&PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/room.png"))
             .with_id(0);
 
         builder.rooms[start_pos.x as usize][start_pos.y as usize] = Some(start_room);
@@ -108,7 +108,8 @@ impl LevelBuilder {
         let mut new_room_index = 0;
         let mut new_pos = Vector2::new(0, 0);
         for _ in 1..self.number_of_rooms {
-            let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("res/sprites/room{}.png", rng.gen_range(1, 4)));
+            //let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("res/sprites/room{}.png", rng.gen_range(1, 4)));
+            let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("res/sprites/room.png"));
             for _ in 0..400 {
                 new_room_index = rng.gen_range(0, self.possible_positions.len());
                 new_pos = self.possible_positions[new_room_index];

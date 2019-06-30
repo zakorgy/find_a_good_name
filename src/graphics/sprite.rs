@@ -1,7 +1,71 @@
 use image::{GenericImageView, RgbaImage, SubImage};
 use std::path::PathBuf;
 
-pub static SPRITE_SIZE_U32: u32 = 8;
+pub static SPRITE_SIZE_U32: u32 = 16;
+pub static SPRITE_SIZE_SHIFT_VALUE: u32 = 4;
+pub static HALF_SPRITE_SIZE_U32: u32 = 8;
+pub static HALF_SPRITE_SIZE_SHIFT_VALUE: u32 = 3;
+pub static SPRITE_SIZE_F32: f32 = 16.0;
+
+lazy_static! {
+    pub static ref SHEET: SpriteSheet = {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/sheet.png");
+        SpriteSheet::new(path.to_str().unwrap().to_owned())
+    };
+    static ref GRASS0: Sprite = Sprite::new(SPRITE_SIZE_U32, 9, 2, &SHEET);
+    static ref GRASS1: Sprite = Sprite::new(SPRITE_SIZE_U32, 9, 1, &SHEET);
+    static ref GRASS2: Sprite = Sprite::new(SPRITE_SIZE_U32, 9, 3, &SHEET);
+    static ref GRASS3: Sprite = Sprite::new(SPRITE_SIZE_U32, 10, 1, &SHEET);
+    static ref GRASS4: Sprite = Sprite::new(SPRITE_SIZE_U32, 10, 2, &SHEET);
+    static ref GRASS5: Sprite = Sprite::new(SPRITE_SIZE_U32, 10, 3, &SHEET);
+    pub static ref GRASSES: Vec<&'static Sprite> = vec![&GRASS0, &GRASS1, &GRASS2, &GRASS3, &GRASS4, &GRASS5];
+    pub static ref VOID: Sprite = Sprite::new(SPRITE_SIZE_U32, 18, 0, &SHEET);
+    static ref CORNER0: Sprite = Sprite::new(SPRITE_SIZE_U32, 3, 0, &SHEET);
+    static ref CORNER1: Sprite = Sprite::new(SPRITE_SIZE_U32, 3, 1, &SHEET);
+    static ref CORNER2: Sprite = Sprite::new(SPRITE_SIZE_U32, 4, 0, &SHEET);
+    static ref CORNER3: Sprite = Sprite::new(SPRITE_SIZE_U32, 4, 1, &SHEET);
+    pub static ref CORNERS: Vec<&'static Sprite> = vec![&CORNER0, &CORNER1, &CORNER2, &CORNER3];
+    static ref WALL0: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 3, &SHEET);
+    static ref WALL1: Sprite = Sprite::new(SPRITE_SIZE_U32, 1, 3, &SHEET);
+    static ref WALL2: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 3, &SHEET);
+    pub static ref WALLS: Vec<&'static Sprite> = vec![&WALL0, &WALL1, &WALL2,];
+    pub static ref DOOR: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 8, &SHEET);
+    pub static ref ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 12, 28, &SHEET);
+    pub static ref CURRENT_ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 12, 29, &SHEET);
+    pub static ref NO_ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 13, 28, &SHEET);
+}
+
+lazy_static! {
+    pub static ref GOBLIN: SpriteSheet = {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/goblin.png");
+        SpriteSheet::new(path.to_str().unwrap().to_owned())
+    };
+    static ref PLAYER0: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 0, &GOBLIN);
+    static ref PLAYER1: Sprite = Sprite::new(SPRITE_SIZE_U32, 1, 0, &GOBLIN);
+    static ref PLAYER2: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 0, &GOBLIN);
+    pub static ref PLAYER_DOWN: Vec<&'static Sprite> = vec![&PLAYER0, &PLAYER1, &PLAYER2];
+    static ref PLAYER3: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 1, &GOBLIN);
+    static ref PLAYER4: Sprite = Sprite::new(SPRITE_SIZE_U32, 1, 1, &GOBLIN);
+    static ref PLAYER5: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 1, &GOBLIN);
+    pub static ref PLAYER_UP: Vec<&'static Sprite> = vec![&PLAYER3, &PLAYER4, &PLAYER5];
+    static ref PLAYER6: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 2, &GOBLIN);
+    static ref PLAYER7: Sprite = Sprite::new(SPRITE_SIZE_U32, 1, 2, &GOBLIN);
+    static ref PLAYER8: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 2, &GOBLIN);
+    pub static ref PLAYER_LEFT: Vec<&'static Sprite> = vec![&PLAYER6, &PLAYER7, &PLAYER8];
+}
+
+lazy_static! {
+    pub static ref BLOB: SpriteSheet = {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("res/sprites/blob.png");
+        SpriteSheet::new(path.to_str().unwrap().to_owned())
+    };
+    static ref ENEMY0: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 0, &BLOB);
+    static ref ENEMY1: Sprite = Sprite::new(SPRITE_SIZE_U32, 1, 0, &BLOB);
+    static ref ENEMY2: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 0, &BLOB);
+    pub static ref ENEMIES: Vec<&'static Sprite> = vec![&ENEMY0, &ENEMY1, &ENEMY2];
+}
+
+/*pub static SPRITE_SIZE_U32: u32 = 8;
 pub static SPRITE_SIZE_SHIFT_VALUE: u32 = 3;
 pub static HALF_SPRITE_SIZE_U32: u32 = 4;
 pub static HALF_SPRITE_SIZE_SHIFT_VALUE: u32 = 2;
@@ -18,7 +82,7 @@ lazy_static! {
     pub static ref PLAYER: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 8, &SHEET);
     static ref PLAYER0: Sprite = Sprite::new(SPRITE_SIZE_U32, 7, 7, &SHEET);
     static ref PLAYER1: Sprite = Sprite::new(SPRITE_SIZE_U32, 0, 8, &SHEET);
-    pub static ref PLAYERS: Vec<&'static Sprite> = vec![&PLAYER0, &PLAYER1];
+    pub static ref PLAYER_SOUTH: Vec<&'static Sprite> = vec![&PLAYER0, &PLAYER1];
     static ref ENEMY0: Sprite = Sprite::new(SPRITE_SIZE_U32, 2, 9, &SHEET);
     static ref ENEMY1: Sprite = Sprite::new(SPRITE_SIZE_U32, 3, 9, &SHEET);
     pub static ref ENEMIES: Vec<&'static Sprite> = vec![&ENEMY0, &ENEMY1];
@@ -38,7 +102,7 @@ lazy_static! {
     pub static ref ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 12, 28, &SHEET);
     pub static ref CURRENT_ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 12, 29, &SHEET);
     pub static ref NO_ROOM: Sprite = Sprite::new(HALF_SPRITE_SIZE_U32, 13, 28, &SHEET);
-}
+}*/
 
 pub struct SpriteSheet {
     image: RgbaImage,

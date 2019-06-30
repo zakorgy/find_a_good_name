@@ -1,6 +1,6 @@
-use super::entity::{Door, Enemy, EntityManager, MessageDispatcher, Player, Telegram, Message};
+use super::entity::{Direction, Door, Enemy, EntityManager, MessageDispatcher, Player, Telegram, Message};
 use super::entity::PLAYER_ID;
-use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYERS, SPRITE_SIZE_U32};
+use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYER_DOWN, PLAYER_UP, PLAYER_LEFT, SPRITE_SIZE_U32};
 use super::input::{Key, KeyBoard};
 use super::level::{Level, RoomId};
 use cgmath::Vector2;
@@ -14,7 +14,7 @@ use std::rc::Rc;
 
 static EXIT_KEY: &'static Key = &Key::Escape;
 static PAUSE_KEY: &'static Key = &Key::Space;
-const OFFSET_FROM_DOOR: f32 = 6.0;
+const OFFSET_FROM_DOOR: f32 = 12.0;
 
 #[derive(Debug)]
 enum GameState {
@@ -92,7 +92,12 @@ impl Game {
                 GameState::Start => {
                     let player = Box::new(Player::new(
                         0.7,
-                        AnimatedSprite::new(PLAYERS.to_vec(), vec![5, 10]),
+                        vec![
+                            (Direction::Up, AnimatedSprite::new(PLAYER_UP.to_vec(), vec![5, 10, 15])),
+                            (Direction::Down, AnimatedSprite::new(PLAYER_DOWN.to_vec(), vec![5, 10, 15])),
+                            (Direction::Left, AnimatedSprite::new(PLAYER_LEFT.to_vec(), vec![5, 10, 15])),
+                            (Direction::Right, AnimatedSprite::new(PLAYER_LEFT.to_vec(), vec![5, 10, 15])),
+                        ],
                         Rc::clone(&self.keyboard),
                         PLAYER_ID,
                     ));
@@ -274,8 +279,8 @@ impl Game {
         let pos = self.window.window.get_position().unwrap();
         //println!("win pos {:?}", pos);
         self.screen.put_pixel(
-            (self.keyboard.borrow().mouse_pos.x) as u32 / 6, 
-            (self.keyboard.borrow().mouse_pos.y) as u32 / 6,
+            (self.keyboard.borrow().mouse_pos.x) as u32 / self.scale, 
+            (self.keyboard.borrow().mouse_pos.y) as u32 / self.scale,
             image::Rgba {
                 data: [255, 0, 0, 255],
             }
