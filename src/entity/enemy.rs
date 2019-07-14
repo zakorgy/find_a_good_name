@@ -1,8 +1,8 @@
 use crate::entity::{Collider, CollisionKind, Direction, Entity, EntityId, MessageDispatcher, INVALID_ID};
-use crate::graphics::{screen::Screen, sprite::AnimatedSprite};
+use crate::graphics::sprite::AnimatedSprite;
 use crate::level::room::Room;
 use cgmath::Vector2;
-use image::{GenericImageView, Rgba};
+use image::{RgbaImage, SubImage};
 
 pub struct Enemy {
     position: Vector2<f32>,
@@ -11,7 +11,7 @@ pub struct Enemy {
     removed: bool,
     sprite: AnimatedSprite,
     _collides: bool,
-    flipped: bool,
+    _flipped: bool,
     id: EntityId,
 }
 
@@ -24,7 +24,7 @@ impl Enemy {
             removed: false,
             sprite,
             _collides: false,
-            flipped: false,
+            _flipped: false,
             id: INVALID_ID,
         }
     }
@@ -35,53 +35,8 @@ impl Entity for Enemy {
         self.sprite.update()
     }
 
-    fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
-        let pixels = self.sprite.view();
-        let Vector2 { x: ax, y: ay } = self.relative_pos(offset);
-        for y in 0..self.sprite.size() {
-            for x in 0..self.sprite.size() {
-                let xp = x as i32 + ax;
-                let yp = y as i32 + ay;
-                if xp < 0
-                    || xp >= screen.dimensions.x as i32
-                    || yp < 0
-                    || yp >= screen.dimensions.y as i32
-                {
-                    continue;
-                }
-                #[cfg(feature = "debug_rect")]
-                {
-                    if y == 0
-                        || y == self.sprite.size() - 1
-                        || x == 0
-                        || x == self.sprite.size() - 1
-                    {
-                        screen.canvas.put_pixel(
-                            xp as u32,
-                            yp as u32,
-                            Rgba {
-                                data: [255, 0, 255, 255],
-                            },
-                        );
-                        continue;
-                    }
-                }
-                let pixel = match pixels.get_pixel(
-                    if self.flipped {
-                        self.sprite.size() - 1 - x
-                    } else {
-                        x
-                    },
-                    y,
-                ) {
-                    Rgba {
-                        data: [255, 0, 255, 255],
-                    } => continue,
-                    pixel => pixel,
-                };
-                screen.put_pixel(xp as u32, yp as u32, pixel);
-            }
-        }
+    fn sprite_view(&self) -> Option<SubImage<&RgbaImage>> {
+        Some(self.sprite.view())
     }
 
     fn remove(&mut self) {

@@ -6,7 +6,7 @@ use crate::graphics::{
 use crate::input::keyboard::KeyBoard;
 use crate::level::room::Room;
 use cgmath::Vector2;
-use image::{GenericImageView, Rgba};
+use image::{RgbaImage, SubImage};
 use piston::input::Key;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -158,57 +158,16 @@ impl Entity for Player {
         }
     }
 
+    fn sprite_view(&self) -> Option<SubImage<&RgbaImage>> {
+        Some(self.sprite().view())
+    }
+
     fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
-        let flipped = match self.shoot_direction.unwrap_or(self.direction) {
+        let flip = match self.shoot_direction.unwrap_or(self.direction) {
             Direction::Left => true,
             _ => false,
         };
-        let pixels = self.sprite().view();
-        let Vector2 { x: ax, y: ay } = self.relative_pos(offset);
-        for y in 0..self.sprite().size() {
-            for x in 0..self.sprite().size() {
-                let xp = x as i32 + ax;
-                let yp = y as i32 + ay;
-                if xp < 0
-                    || xp >= screen.dimensions.x as i32
-                    || yp < 0
-                    || yp >= screen.dimensions.y as i32
-                {
-                    continue;
-                }
-                #[cfg(feature = "debug_rect")]
-                {
-                    if y == 0
-                        || y == self.sprite().size() - 1
-                        || x == 0
-                        || x == self.sprite().size() - 1
-                    {
-                        screen.put_pixel(
-                            xp as u32,
-                            yp as u32,
-                            Rgba {
-                                data: [255, 0, 255, 255],
-                            },
-                        );
-                        continue;
-                    }
-                }
-                let pixel = match pixels.get_pixel(
-                    if flipped {
-                        self.sprite().size() - 1 - x
-                    } else {
-                        x
-                    },
-                    y,
-                ) {
-                    Rgba {
-                        data: [255, 0, 255, 255],
-                    } => continue,
-                    pixel => pixel,
-                };
-                screen.put_pixel(xp as u32, yp as u32, pixel);
-            }
-        }
+        self.render_impl(screen, offset, flip);
     }
 
     fn remove(&mut self) {
