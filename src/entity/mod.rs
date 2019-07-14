@@ -36,8 +36,8 @@ pub trait Entity {
         };
         let (width, height) = pixels.dimensions();
         let Vector2 { x: ax, y: ay } = self.relative_pos(offset);
-        for y in 0..width {
-            for x in 0..height {
+        for y in 0..height {
+            for x in 0..width {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
                 if xp < 0
@@ -84,8 +84,8 @@ pub trait Entity {
             if let Some(collider) = self.collider() {
                 let (width, height) = collider.dimensions.cast().unwrap().into();
                 let Vector2 { x: ax, y: ay } = collider.relative_pos(offset);
-                for y in 0..width {
-                    for x in 0..height {
+                for y in 0..height {
+                    for x in 0..width {
                         let xp = x as i32 + ax;
                         let yp = y as i32 + ay;
                         if y == 0
@@ -100,7 +100,6 @@ pub trait Entity {
                                     data: [255, 255, 255, 255],
                                 },
                             );
-                            continue;
                         }
                     }
                 }
@@ -113,6 +112,10 @@ pub trait Entity {
     fn remove(&mut self);
     fn is_removed(&self) -> bool;
     fn set_pos(&mut self, _pos: Vector2<f32>) {}
+    fn offset_pos(&mut self, pos: Vector2<f32>) {
+        let abs_pos = self.absolute_pos().cast().unwrap();
+        self.set_pos(pos + abs_pos);
+    }
     fn relative_pos(&self, _offset: Vector2<f32>) -> Vector2<i32>;
     fn absolute_pos(&self) -> Vector2<i32>;
     fn collider(&self) -> Option<Collider> {
@@ -361,39 +364,45 @@ impl EntityManager {
             let mut player = self.entities.remove(&PLAYER_ID).unwrap();
             for (k, ref e) in self.entities.iter() {
                 if player.collides_with(&e.collider()) {
-                    colliding_entites.push((*k, e.collider()));
+                    colliding_entites.push((*k, e.collider().unwrap()));
                 }
             }
             self.entities.insert(PLAYER_ID, player);
         }
+        if colliding_entites.is_empty() {
+            return
+        }
         let player = self.entities.get_mut(&PLAYER_ID).unwrap();
-        let epsilon = 0.0;
+        let player_collider = player.collider().unwrap();
+        let epsilon = 0.5;
         for (id, collider) in colliding_entites {
-            if let Some(Vector2 {
+            let Vector2 {
                 x: enemy_x,
                 y: enemy_y,
-            }) = collider.and_then(|c| Some(c.origin()))
-            {
-                let Vector2 {
-                    x: collider_x,
-                    y: collider_y,
-                } = player.collider().and_then(|c| Some(c.origin())).unwrap();
-                let x = collider_x - enemy_x;
-                let y = collider_y - enemy_y;
-                let x_dir = x.signum();
-                let y_dir = y.signum();
-                let Vector2 {
-                    x: player_x,
-                    y: player_y,
-                } = player.absolute_pos().cast().unwrap();
-                if x.abs() >= y.abs() {
-                    let dist = SPRITE_SIZE_F32 + 4.0 * x_dir - x.abs() + epsilon;
-                    player.set_pos((player_x + x_dir * dist, player_y).into());
+            } = collider.origin;
+            let x = player_collider.origin.x - enemy_x;
+            let y = player_collider.origin.y - enemy_y;
+            let x_dir = x.signum();
+            let y_dir = y.signum();
+            if x.abs() >= y.abs() {
+                // Picke the collider size of the top left entity
+                let collider_size = if x_dir.is_sign_positive() {
+                    collider.dimensions.x
                 } else {
-                    let offset = if y_dir < 0.0 { 8.0 * y_dir } else { 0.0 };
-                    let dist = SPRITE_SIZE_F32 + offset - y.abs() + epsilon;
-                    player.set_pos((player_x, player_y + y_dir * dist).into());
-                }
+                    player_collider.dimensions.x
+                };
+                let dist = collider_size - x.abs() + epsilon;
+                let offset = (x_dir * dist.ceil(), 0.).into();
+                player.offset_pos(offset);
+            } else {
+                let collider_size = if y_dir.is_sign_positive() {
+                    collider.dimensions.y
+                } else {
+                    player_collider.dimensions.y
+                };
+                let dist = collider_size - y.abs() + epsilon;
+                let offset = (0. , y_dir * dist.ceil()).into();
+                player.offset_pos(offset);
             }
             dispatcher.queue_message(PLAYER_ID, id, Message::Collides);
             dispatcher.queue_message(id, PLAYER_ID, Message::Collides);

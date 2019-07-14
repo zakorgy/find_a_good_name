@@ -189,8 +189,8 @@ impl Entity for Player {
     fn collider(&self) -> Option<Collider> {
         let _sprite_size = self.sprite().size() as f32;
         Some(Collider::new(
-            self.position + Vector2::new(4.0, 8.0),
-            (8.0, 8.0).into(),
+            self.position + Vector2::new(3.0, 6.0),
+            (10.0, 10.0).into(),
             CollisionKind::Friendly,
         ))
     }
