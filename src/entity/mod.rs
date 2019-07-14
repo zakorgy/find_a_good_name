@@ -9,6 +9,7 @@ use crate::graphics::{
 use projectile::Projectile;
 use crate::level::room::{Room, RoomId};
 use cgmath::Vector2;
+use image::{Rgba, GenericImageView, RgbaImage, SubImage};
 
 use std::boxed::Box;
 use std::collections::{HashMap, VecDeque};
@@ -25,7 +26,90 @@ const EPSILON: Vector2<f32> = Vector2::new(0.005, 0.005);
 pub trait Entity {
     fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher);
     fn move_entity(&mut self, _distance: Vector2<f32>, _room: &Room) {}
-    fn render(&self, screen: &mut Screen, _offset: Vector2<f32>);
+    fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
+        self.render_impl(screen, offset, false)
+    }
+    fn render_impl(&self, screen: &mut Screen, offset: Vector2<f32>, flip: bool) {
+        let pixels = match self.sprite_view() {
+            Some(view) => view,
+            None => return,
+        };
+        let (width, height) = pixels.dimensions();
+        let Vector2 { x: ax, y: ay } = self.relative_pos(offset);
+        for y in 0..width {
+            for x in 0..height {
+                let xp = x as i32 + ax;
+                let yp = y as i32 + ay;
+                if xp < 0
+                    || xp >= screen.dimensions.x as i32
+                    || yp < 0
+                    || yp >= screen.dimensions.y as i32
+                {
+                    continue;
+                }
+                #[cfg(feature = "debug_rect")]
+                {
+                    if y == 0
+                        || y == height- 1
+                        || x == 0
+                        || x == width - 1
+                    {
+                        screen.put_pixel(
+                            xp as u32,
+                            yp as u32,
+                            Rgba {
+                                data: [255, 0, 255, 255],
+                            },
+                        );
+                        continue;
+                    }
+                }
+                let pixel = match pixels.get_pixel(
+                    if flip {
+                        width - 1 - x
+                    } else {
+                        x
+                    },
+                    y,
+                ) {
+                    Rgba {
+                        data: [255, 0, 255, 255],
+                    } => continue,
+                    pixel => pixel,
+                };
+                screen.put_pixel(xp as u32, yp as u32, pixel);
+            }
+        }
+        #[cfg(feature = "debug_rect")] {
+            if let Some(collider) = self.collider() {
+                let (width, height) = collider.dimensions.cast().unwrap().into();
+                let Vector2 { x: ax, y: ay } = collider.relative_pos(offset);
+                for y in 0..width {
+                    for x in 0..height {
+                        let xp = x as i32 + ax;
+                        let yp = y as i32 + ay;
+                        if y == 0
+                            || y == height- 1
+                            || x == 0
+                            || x == width - 1
+                        {
+                            screen.put_pixel(
+                                xp as u32,
+                                yp as u32,
+                                Rgba {
+                                    data: [255, 255, 255, 255],
+                                },
+                            );
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    fn sprite_view(&self) -> Option<SubImage<&RgbaImage>> {
+        None
+    }
     fn remove(&mut self);
     fn is_removed(&self) -> bool;
     fn set_pos(&mut self, _pos: Vector2<f32>) {}
@@ -107,6 +191,10 @@ impl Collider {
 
     pub fn hostile(&self) -> bool {
         self.kind == CollisionKind::Hostile
+    }
+
+    pub fn relative_pos(&self, offset: Vector2<f32>) -> Vector2<i32> {
+        (self.origin - offset).cast().unwrap()
     }
 }
 
