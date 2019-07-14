@@ -1,11 +1,15 @@
-use super::super::entity::Direction;
-use super::super::graphics::image;
-use super::super::graphics::{Screen, SPRITE_SIZE_U32, SPRITE_SIZE_SHIFT_VALUE, SPRITE_SIZE_F32};
+use crate::entity::Direction;
+use crate::graphics::{
+    screen::Screen,
+    sprite::{SPRITE_SIZE_F32, SPRITE_SIZE_SHIFT_VALUE, SPRITE_SIZE_U32}
+};
+use crate::level::tile;
+use cgmath::Vector2;
+use image;
 use rand::Rng;
 use std::convert::From;
 use std::default::Default;
 use std::path::PathBuf;
-use cgmath::Vector2;
 
 const MAX_NEIGHBOUR: usize = 4;
 
@@ -134,13 +138,15 @@ impl RoomBuilder {
                 let orientaion = match (x, y) {
                     (_, 0) => Direction::Up,
                     (0, _) => Direction::Left,
-                    (x, y) => if x == width - 1 {
-                        Direction::Right
-                    } else if y == height - 1 {
-                        Direction::Down
-                    } else {
-                        Direction::Up
-                    },
+                    (x, y) => {
+                        if x == width - 1 {
+                            Direction::Right
+                        } else if y == height - 1 {
+                            Direction::Down
+                        } else {
+                            Direction::Up
+                        }
+                    }
                 };
                 match image.get_pixel(x, y) {
                     image::Rgba {
@@ -148,24 +154,27 @@ impl RoomBuilder {
                     } => {
                         if x == 0 && y == 0 {
                             tiles.push(Tiles::WallCorner(Direction::Up, Direction::Left));
-                        }
-                        else if x == 0 && y == height - 1 {
+                        } else if x == 0 && y == height - 1 {
                             tiles.push(Tiles::WallCorner(Direction::Down, Direction::Left));
-                        }
-                        else if x == width - 1 && y == 0 {
+                        } else if x == width - 1 && y == 0 {
                             tiles.push(Tiles::WallCorner(Direction::Up, Direction::Right));
-                        }
-                        else if x == width - 1 && y == height - 1 {
+                        } else if x == width - 1 && y == height - 1 {
                             tiles.push(Tiles::WallCorner(Direction::Down, Direction::Right));
                         } else {
-                            tiles.push(Tiles::Wall(rand::thread_rng().gen_range(0_usize, 3), orientaion));
+                            tiles.push(Tiles::Wall(
+                                rand::thread_rng().gen_range(0_usize, 3),
+                                orientaion,
+                            ));
                         }
                     }
                     image::Rgba {
                         data: [0, 0, 255, 255],
                     } => {
-                        possible_door_positions.push(Vector2::new(x,y));
-                        tiles.push(Tiles::Wall(rand::thread_rng().gen_range(0_usize, 3), orientaion));
+                        possible_door_positions.push(Vector2::new(x, y));
+                        tiles.push(Tiles::Wall(
+                            rand::thread_rng().gen_range(0_usize, 3),
+                            orientaion,
+                        ));
                     }
                     image::Rgba {
                         data: [0, 255, 0, 255],
@@ -193,7 +202,8 @@ impl RoomBuilder {
                         }
                     }
                     possible_door_positions.remove(idx);
-                    tiles[(north_pos.y * width + north_pos.x) as usize] = Tiles::Door(Direction::Up);
+                    tiles[(north_pos.y * width + north_pos.x) as usize] =
+                        Tiles::Door(Direction::Up);
                     load_info.doors[0] = Some((north_pos, *id));
                 }
                 Neighbour::East(id) => {
@@ -207,7 +217,8 @@ impl RoomBuilder {
                         }
                     }
                     possible_door_positions.remove(idx);
-                    tiles[(east_pos.y * width + east_pos.x) as usize] = Tiles::Door(Direction::Right);
+                    tiles[(east_pos.y * width + east_pos.x) as usize] =
+                        Tiles::Door(Direction::Right);
                     load_info.doors[1] = Some((east_pos, *id));
                 }
                 Neighbour::South(id) => {
@@ -221,7 +232,8 @@ impl RoomBuilder {
                         }
                     }
                     possible_door_positions.remove(idx);
-                    tiles[(south_pos.y * width + south_pos.x) as usize] = Tiles::Door(Direction::Down);
+                    tiles[(south_pos.y * width + south_pos.x) as usize] =
+                        Tiles::Door(Direction::Down);
                     load_info.doors[2] = Some((south_pos, *id));
                 }
                 Neighbour::West(id) => {
@@ -235,7 +247,8 @@ impl RoomBuilder {
                         }
                     }
                     possible_door_positions.remove(idx);
-                    tiles[(west_pos.y * width + west_pos.x) as usize] = Tiles::Door(Direction::Left);
+                    tiles[(west_pos.y * width + west_pos.x) as usize] =
+                        Tiles::Door(Direction::Left);
                     load_info.doors[3] = Some((west_pos, *id));
                 }
             }
@@ -269,7 +282,7 @@ pub struct Room {
 }
 
 fn right_shift_vec(vec: Vector2<i32>, value: u32) -> Vector2<i32> {
-    [vec.x>> value, vec.y>> value].into()
+    [vec.x >> value, vec.y >> value].into()
 }
 
 impl Room {
@@ -277,8 +290,11 @@ impl Room {
 
     pub fn render(&self, offset: Vector2<i32>, screen: &mut Screen) {
         screen.set_offset(offset);
-        let Vector2 {x: x0, y: y0} = right_shift_vec(offset, SPRITE_SIZE_SHIFT_VALUE);
-        let Vector2 {x: x1, y: y1} = right_shift_vec(offset + screen.dimensions.cast().unwrap(), SPRITE_SIZE_SHIFT_VALUE);
+        let Vector2 { x: x0, y: y0 } = right_shift_vec(offset, SPRITE_SIZE_SHIFT_VALUE);
+        let Vector2 { x: x1, y: y1 } = right_shift_vec(
+            offset + screen.dimensions.cast().unwrap(),
+            SPRITE_SIZE_SHIFT_VALUE,
+        );
         for y in y0..=y1 {
             for x in x0..=x1 {
                 let (tile, orientation) = self.get_tile_and_orientation(x, y);
@@ -287,57 +303,53 @@ impl Room {
         }
     }
 
-    pub fn get_tile_and_orientation(&self, x: i32, y: i32) -> (&'static super::tile::Tile, Direction) {
+    pub fn get_tile_and_orientation(&self, x: i32, y: i32) -> (&'static tile::Tile, Direction) {
         if x < 0 || x >= self.dimensions.x || y < 0 || y >= self.dimensions.y {
-            return (&super::tile::VOID_TILE, Direction::Up);
+            return (&tile::VOID_TILE, Direction::Up);
         }
         match self
             .tiles
             .get((x + y * self.dimensions.x) as usize)
             .expect("Out of bounds")
         {
-            //Tiles::Ground => (&super::tile::GROUND_TILES[0], Direction::Up),
-            Tiles::Wall(i, o) => (&super::tile::WALL_TILES[*i], *o),
-            Tiles::WallCorner(d1, d2) => {
-                match (d1, d2) {
-                    (Direction::Up, Direction::Left) => (&super::tile::CORNER_TILES[0], Direction::Up),
-                    (Direction::Down, Direction::Left) => (&super::tile::CORNER_TILES[1], Direction::Up),
-                    (Direction::Up, Direction::Right) => (&super::tile::CORNER_TILES[2], Direction::Up),
-                    (Direction::Down, Direction::Right) => (&super::tile::CORNER_TILES[3], Direction::Up),
-                    _ => (&super::tile::VOID_TILE, Direction::Up),
-                }
-            }
-            Tiles::Grass(i) => (&super::tile::GRASS_TILES[*i], Direction::Up),
-            Tiles::SpawnPoint(i) => (&super::tile::GRASS_TILES[*i], Direction::Up),
-            Tiles::Door(o) => (&super::tile::DOOR_TILE, *o),
-            _ => (&super::tile::VOID_TILE, Direction::Up),
+            //Tiles::Ground => (&tile::GROUND_TILES[0], Direction::Up),
+            Tiles::Wall(i, o) => (&tile::WALL_TILES[*i], *o),
+            Tiles::WallCorner(d1, d2) => match (d1, d2) {
+                (Direction::Up, Direction::Left) => (&tile::CORNER_TILES[0], Direction::Up),
+                (Direction::Down, Direction::Left) => (&tile::CORNER_TILES[1], Direction::Up),
+                (Direction::Up, Direction::Right) => (&tile::CORNER_TILES[2], Direction::Up),
+                (Direction::Down, Direction::Right) => (&tile::CORNER_TILES[3], Direction::Up),
+                _ => (&tile::VOID_TILE, Direction::Up),
+            },
+            Tiles::Grass(i) => (&tile::GRASS_TILES[*i], Direction::Up),
+            Tiles::SpawnPoint(i) => (&tile::GRASS_TILES[*i], Direction::Up),
+            Tiles::Door(o) => (&tile::DOOR_TILE, *o),
+            _ => (&tile::VOID_TILE, Direction::Up),
         }
     }
 
-    pub fn get_tile(&self, x: i32, y: i32) -> &'static super::tile::Tile {
+    pub fn get_tile(&self, x: i32, y: i32) -> &'static tile::Tile {
         if x < 0 || x >= self.dimensions.x || y < 0 || y >= self.dimensions.y {
-            return &super::tile::VOID_TILE;
+            return &tile::VOID_TILE;
         }
         match self
             .tiles
             .get((x + y * self.dimensions.x) as usize)
             .expect("Out of bounds")
         {
-            //Tiles::Ground => &super::tile::GROUND_TILES[0],
-            Tiles::Wall(i, _) => &super::tile::WALL_TILES[*i],
-            Tiles::WallCorner(d1, d2) => {
-                match (d1, d2) {
-                    (Direction::Up, Direction::Left) => &super::tile::CORNER_TILES[0],
-                    (Direction::Down, Direction::Left) => &super::tile::CORNER_TILES[1],
-                    (Direction::Up, Direction::Right) => &super::tile::CORNER_TILES[2],
-                    (Direction::Down, Direction::Right) => &super::tile::CORNER_TILES[3],
-                    _ => &super::tile::VOID_TILE,
-                }
-            }
-            Tiles::Grass(i) => &super::tile::GRASS_TILES[*i],
-            Tiles::SpawnPoint(i) => &super::tile::GRASS_TILES[*i],
-            Tiles::Door(_) => &super::tile::DOOR_TILE,
-            _ => &super::tile::VOID_TILE,
+            //Tiles::Ground => &tile::GROUND_TILES[0],
+            Tiles::Wall(i, _) => &tile::WALL_TILES[*i],
+            Tiles::WallCorner(d1, d2) => match (d1, d2) {
+                (Direction::Up, Direction::Left) => &tile::CORNER_TILES[0],
+                (Direction::Down, Direction::Left) => &tile::CORNER_TILES[1],
+                (Direction::Up, Direction::Right) => &tile::CORNER_TILES[2],
+                (Direction::Down, Direction::Right) => &tile::CORNER_TILES[3],
+                _ => &tile::VOID_TILE,
+            },
+            Tiles::Grass(i) => &tile::GRASS_TILES[*i],
+            Tiles::SpawnPoint(i) => &tile::GRASS_TILES[*i],
+            Tiles::Door(_) => &tile::DOOR_TILE,
+            _ => &tile::VOID_TILE,
         }
     }
 
@@ -351,7 +363,8 @@ impl Room {
                 return (
                     (i as i32 % self.dimensions.x) as f32 * SPRITE_SIZE_F32,
                     (i as i32 / self.dimensions.x) as f32 * SPRITE_SIZE_F32,
-                ).into();
+                )
+                    .into();
             }
         }
         return (0., 0.).into();

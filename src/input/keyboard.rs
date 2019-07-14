@@ -1,6 +1,6 @@
-use piston::input::{Button, Key, MouseButton};
-use piston_window::GenericEvent;
 use cgmath::Vector2;
+use piston::input::{Button, Key};
+use piston_window::GenericEvent;
 use std::collections::HashSet;
 
 pub struct KeyBoard {
@@ -34,7 +34,6 @@ impl KeyBoard {
         };
 
         if let Some(pos) = event.mouse_cursor_args() {
-            println!("{:?}", pos);
             self.mouse_pos = pos.into();
         }
 

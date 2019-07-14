@@ -1,13 +1,19 @@
-use super::entity::{Direction, Door, Enemy, EntityManager, MessageDispatcher, Player, Telegram, Message};
-use super::entity::PLAYER_ID;
-use super::graphics::{AnimatedSprite, Screen, ENEMIES, PLAYER_DOWN, PLAYER_UP, PLAYER_LEFT, SPRITE_SIZE_U32};
-use super::input::{Key, KeyBoard};
-use super::level::{Level, RoomId};
+use crate::entity::{
+    PLAYER_ID, Direction, Door, EntityManager, Message, MessageDispatcher, Telegram,
+    enemy::Enemy,
+    player::Player,
+};
+use crate::graphics::{
+    screen::Screen,
+    sprite::{AnimatedSprite, ENEMIES, PLAYER_DOWN, PLAYER_LEFT, PLAYER_UP, SPRITE_SIZE_U32},
+};
+use crate::input::{Key, keyboard::KeyBoard};
+use crate::level::{Level, room::RoomId};
 use cgmath::Vector2;
 use piston_window::generic_event::GenericEvent;
 use piston_window::{clear, image as draw_image};
-use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
 use piston_window::{AdvancedWindow, PistonWindow, WindowSettings};
+use piston_window::{Filter, G2dTexture, Texture, TextureSettings, Transformed};
 use std::boxed::Box;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -77,7 +83,6 @@ impl Game {
     }
 
     pub fn run(&mut self) {
-        use piston_window::AdvancedWindow;
         use std::ops::Add;
         use std::time::{Duration, Instant};
 
@@ -93,10 +98,22 @@ impl Game {
                     let player = Box::new(Player::new(
                         0.7,
                         vec![
-                            (Direction::Up, AnimatedSprite::new(PLAYER_UP.to_vec(), vec![5, 10, 15])),
-                            (Direction::Down, AnimatedSprite::new(PLAYER_DOWN.to_vec(), vec![5, 10, 15])),
-                            (Direction::Left, AnimatedSprite::new(PLAYER_LEFT.to_vec(), vec![5, 10, 15])),
-                            (Direction::Right, AnimatedSprite::new(PLAYER_LEFT.to_vec(), vec![5, 10, 15])),
+                            (
+                                Direction::Up,
+                                AnimatedSprite::new(PLAYER_UP.to_vec(), vec![5, 10, 15]),
+                            ),
+                            (
+                                Direction::Down,
+                                AnimatedSprite::new(PLAYER_DOWN.to_vec(), vec![5, 10, 15]),
+                            ),
+                            (
+                                Direction::Left,
+                                AnimatedSprite::new(PLAYER_LEFT.to_vec(), vec![5, 10, 15]),
+                            ),
+                            (
+                                Direction::Right,
+                                AnimatedSprite::new(PLAYER_LEFT.to_vec(), vec![5, 10, 15]),
+                            ),
                         ],
                         Rc::clone(&self.keyboard),
                         PLAYER_ID,
@@ -113,15 +130,27 @@ impl Game {
                     let enter_point = if game_start {
                         midle_point
                     } else {
-                        let pos = self.level.current_room().load_info.doors.iter().find(|i| {
-                            if let Some((_, room_id)) = i {
-                                if *room_id == prev_id {
-                                    return true;
+                        let pos = self
+                            .level
+                            .current_room()
+                            .load_info
+                            .doors
+                            .iter()
+                            .find(|i| {
+                                if let Some((_, room_id)) = i {
+                                    if *room_id == prev_id {
+                                        return true;
+                                    }
                                 }
-                            }
-                            false
-                        }).unwrap().unwrap().0;
-                        let mut pos = ((pos.x * SPRITE_SIZE_U32) as f32, (pos.y * SPRITE_SIZE_U32) as f32);
+                                false
+                            })
+                            .unwrap()
+                            .unwrap()
+                            .0;
+                        let mut pos = (
+                            (pos.x * SPRITE_SIZE_U32) as f32,
+                            (pos.y * SPRITE_SIZE_U32) as f32,
+                        );
                         if (midle_point.x - pos.0) > 0.0 {
                             pos.0 += OFFSET_FROM_DOOR;
                         } else if (midle_point.x - pos.0) < 0.0 {
@@ -136,7 +165,9 @@ impl Game {
                         pos.into()
                     };
 
-                    self.entity_manager.get_entity_mut(&PLAYER_ID).set_pos(enter_point.into());
+                    self.entity_manager
+                        .get_entity_mut(&PLAYER_ID)
+                        .set_pos(enter_point.into());
                     self.offset = (0, 0).into();
                     let enemy = Box::new(Enemy::new(
                         (32., 32.).into(),
@@ -181,9 +212,9 @@ impl Game {
                         updates = 0;
                         frames = 0;
                     }
-                },
+                }
                 GameState::End => break,
-                _ => {},
+                _ => {}
             }
         }
     }
@@ -220,7 +251,12 @@ impl Game {
             self.pause();
         }
 
-        while let Some(Telegram {sender: _, receiver: _, message}) = self.dispatcher.poll_game_message() {
+        while let Some(Telegram {
+            sender: _,
+            receiver: _,
+            message,
+        }) = self.dispatcher.poll_game_message()
+        {
             match message {
                 Message::LoadRoom(id) => {
                     self.state = GameState::LoadRoom(id, false);
@@ -231,13 +267,15 @@ impl Game {
         }
 
         while let Some(message) = self.dispatcher.poll_entity_message() {
-            self.entity_manager.handle_message(message, &mut self.dispatcher);
+            self.entity_manager
+                .handle_message(message, &mut self.dispatcher);
         }
 
         self.entity_manager.check_collisions(&mut self.dispatcher);
         self.dispatcher.dispatch_messages(&mut self.entity_manager);
         self.level.update();
-        self.entity_manager.update(&self.level.current_room(), &mut self.dispatcher);
+        self.entity_manager
+            .update(&self.level.current_room(), &mut self.dispatcher);
         self.update_offsets();
     }
 
@@ -246,8 +284,11 @@ impl Game {
         if player.collides() {
             return;
         }
-        let Vector2 {x, y} = player.absolute_pos();
-        let Vector2 {x: lvl_width, y: lvl_height} = self.level.dimensions();
+        let Vector2 { x, y } = player.absolute_pos();
+        let Vector2 {
+            x: lvl_width,
+            y: lvl_height,
+        } = self.level.dimensions();
         self.offset.x = {
             let half_width = (self.window_dimensions.x / 2) as i32;
             if x < half_width || lvl_width <= self.window_dimensions.x as i32 {
@@ -274,16 +315,16 @@ impl Game {
     fn render<E: GenericEvent>(&mut self, event: &E) {
         self.screen.clear();
         self.level.render(self.offset, &mut self.screen);
-        self.entity_manager.render(&mut self.screen, self.offset.cast().unwrap());
+        self.entity_manager
+            .render(&mut self.screen, self.offset.cast().unwrap());
         self.screen.render_map(self.level.map_info());
-        let pos = self.window.window.get_position().unwrap();
-        //println!("win pos {:?}", pos);
+        let _pos = self.window.window.get_position().unwrap();
         self.screen.put_pixel(
-            (self.keyboard.borrow().mouse_pos.x) as u32 / self.scale, 
+            (self.keyboard.borrow().mouse_pos.x) as u32 / self.scale,
             (self.keyboard.borrow().mouse_pos.y) as u32 / self.scale,
             image::Rgba {
                 data: [255, 0, 0, 255],
-            }
+            },
         );
         self.texture
             .update(&mut self.window.encoder, &self.screen.canvas())
