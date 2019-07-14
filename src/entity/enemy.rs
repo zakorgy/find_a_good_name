@@ -1,8 +1,8 @@
-use super::super::graphics::image::{GenericImageView, Rgba};
-use super::super::graphics::{AnimatedSprite, Screen};
-use super::super::level::Room;
-use super::entity::{Collider, CollisionKind, Direction, Entity, EntityId, MessageDispatcher, INVALID_ID};
+use crate::entity::{Collider, CollisionKind, Direction, Entity, EntityId, MessageDispatcher, INVALID_ID};
+use crate::graphics::{screen::Screen, sprite::AnimatedSprite};
+use crate::level::room::Room;
 use cgmath::Vector2;
+use image::{GenericImageView, Rgba};
 
 pub struct Enemy {
     position: Vector2<f32>,
@@ -37,12 +37,16 @@ impl Entity for Enemy {
 
     fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
         let pixels = self.sprite.view();
-        let Vector2 {x: ax, y: ay} = self.relative_pos(offset);
+        let Vector2 { x: ax, y: ay } = self.relative_pos(offset);
         for y in 0..self.sprite.size() {
             for x in 0..self.sprite.size() {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
-                if xp < 0 || xp >= screen.dimensions.x as i32 || yp < 0 || yp >= screen.dimensions.y as i32 {
+                if xp < 0
+                    || xp >= screen.dimensions.x as i32
+                    || yp < 0
+                    || yp >= screen.dimensions.y as i32
+                {
                     continue;
                 }
                 #[cfg(feature = "debug_rect")]
@@ -62,7 +66,14 @@ impl Entity for Enemy {
                         continue;
                     }
                 }
-                let pixel = match pixels.get_pixel(if self.flipped { self.sprite.size() - 1 - x } else { x }, y) {
+                let pixel = match pixels.get_pixel(
+                    if self.flipped {
+                        self.sprite.size() - 1 - x
+                    } else {
+                        x
+                    },
+                    y,
+                ) {
                     Rgba {
                         data: [255, 0, 255, 255],
                     } => continue,

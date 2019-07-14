@@ -1,7 +1,11 @@
-use super::super::graphics::{
-    Screen, Sprite, CURRENT_ROOM, DOOR, GRASSES, NO_ROOM, ROOM, VOID, WALLS, CORNERS, SPRITE_SIZE_SHIFT_VALUE,
+use crate::entity::Direction;
+use crate::graphics::{
+    screen::Screen,
+    sprite::{
+        Sprite, CORNERS, CURRENT_ROOM, DOOR, GRASSES, NO_ROOM, ROOM, SPRITE_SIZE_SHIFT_VALUE, VOID,
+        WALLS,
+    },
 };
-use super::super::entity::Direction;
 
 lazy_static! {
     static ref GRASS_TILE0: Tile = Tile::new(GRASSES[0], false);
@@ -10,7 +14,6 @@ lazy_static! {
     static ref GRASS_TILE3: Tile = Tile::new(GRASSES[3], false);
     static ref GRASS_TILE4: Tile = Tile::new(GRASSES[4], false);
     static ref GRASS_TILE5: Tile = Tile::new(GRASSES[5], false);
-
     static ref CORNER_TILE0: Tile = Tile::new(CORNERS[0], true);
     static ref CORNER_TILE1: Tile = Tile::new(CORNERS[1], true);
     static ref CORNER_TILE2: Tile = Tile::new(CORNERS[2], true);
@@ -18,7 +21,6 @@ lazy_static! {
     static ref WALL_TILE0: Tile = Tile::new(WALLS[0], true);
     static ref WALL_TILE1: Tile = Tile::new(WALLS[1], true);
     static ref WALL_TILE2: Tile = Tile::new(WALLS[2], true);
-
     pub static ref VOID_TILE: Tile = Tile::new(&VOID, true);
     pub static ref DOOR_TILE: Tile = Tile::new(&DOOR, false);
     pub static ref ROOM_TILE: Tile = Tile::new(&ROOM, false);
@@ -27,7 +29,14 @@ lazy_static! {
     pub static ref CORNER_TILES: Vec<&'static Tile> =
         vec![&CORNER_TILE0, &CORNER_TILE1, &CORNER_TILE2, &CORNER_TILE3];
     pub static ref WALL_TILES: Vec<&'static Tile> = vec![&WALL_TILE0, &WALL_TILE1, &WALL_TILE2,];
-    pub static ref GRASS_TILES: Vec<&'static Tile> = vec![&GRASS_TILE0, &GRASS_TILE1, &GRASS_TILE2, &GRASS_TILE3, &GRASS_TILE4, &GRASS_TILE5];
+    pub static ref GRASS_TILES: Vec<&'static Tile> = vec![
+        &GRASS_TILE0,
+        &GRASS_TILE1,
+        &GRASS_TILE2,
+        &GRASS_TILE3,
+        &GRASS_TILE4,
+        &GRASS_TILE5
+    ];
 }
 
 pub struct Tile {
@@ -41,6 +50,10 @@ impl Tile {
     }
 
     pub fn render(&self, x: i32, y: i32, screen: &mut Screen, orientation: Direction) {
-        screen.render_tile((x<< SPRITE_SIZE_SHIFT_VALUE, y<< SPRITE_SIZE_SHIFT_VALUE).into(), &self, orientation);
+        screen.render_tile(
+            (x << SPRITE_SIZE_SHIFT_VALUE, y << SPRITE_SIZE_SHIFT_VALUE).into(),
+            &self,
+            orientation,
+        );
     }
 }

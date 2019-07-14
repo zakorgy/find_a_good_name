@@ -1,10 +1,11 @@
-use super::super::graphics::image::{GenericImageView, Rgba};
-use super::super::graphics::{SPRITE_SIZE_SHIFT_VALUE, SPRITE_SIZE_F32};
-use super::super::graphics::{Sprite, Screen};
-use super::super::input::KeyBoard;
-use super::super::level::Room;
-use super::entity::{Collider, CollisionKind, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram};
+use crate::entity::{Collider, CollisionKind, Entity, EntityId, MessageDispatcher, Telegram};
+use crate::graphics::{
+    screen::Screen,
+    sprite::SPRITE_SIZE_SHIFT_VALUE,
+};
+use crate::level::room::Room;
 use cgmath::Vector2;
+use image::Rgba;
 
 pub struct Projectile {
     position: Vector2<f32>,
@@ -33,9 +34,9 @@ impl Projectile {
         }
     }
 
-    fn collision(&self, room: &Room, offset: Vector2<f32>) -> bool {
-//        let xy = (self.position + offset).cast::<i32>().unwrap();
-//        let xy0 = right_shift_vec(xy, SPRITE_SIZE_SHIFT_VALUE);
+    fn collision(&self, _room: &Room, _offset: Vector2<f32>) -> bool {
+        //        let xy = (self.position + offset).cast::<i32>().unwrap();
+        //        let xy0 = right_shift_vec(xy, SPRITE_SIZE_SHIFT_VALUE);
         false
     }
 }
@@ -47,18 +48,20 @@ impl Entity for Projectile {
         }
     }
 
-    fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {
+    fn update(&mut self, room: &Room, _dispatcher: &mut MessageDispatcher) {
         if self.position.x < 0.
             || self.position.x > (room.dimensions.x << SPRITE_SIZE_SHIFT_VALUE) as f32
             || self.position.y < 0.
-            || self.position.y > (room.dimensions.y << SPRITE_SIZE_SHIFT_VALUE) as f32 {
+            || self.position.y > (room.dimensions.y << SPRITE_SIZE_SHIFT_VALUE) as f32
+        {
             self.remove();
         }
-        self.move_entity(self.heading * self.speed, room);
+        let dist = self.heading * self.speed;
+        self.move_entity(dist, room);
     }
 
     fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
-        if let Some(Vector2 {x: ax, y: ay}) = self.relative_pos(offset).cast() {
+        if let Some(Vector2 { x: ax, y: ay }) = self.relative_pos(offset).cast() {
             screen.put_pixel(
                 ax,
                 ay,
@@ -86,7 +89,7 @@ impl Entity for Projectile {
     }
 
     fn collider(&self) -> Option<Collider> {
-        let sprite_size = 1.;//self.sprite.size() as f32;
+        let sprite_size = 1.; //self.sprite.size() as f32;
         Some(Collider::new(
             self.position,
             (sprite_size, sprite_size).into(),
@@ -111,8 +114,7 @@ impl Entity for Projectile {
         self.id
     }
 
-    fn handle_message(&mut self, _message: Telegram, _dispatcher: &mut MessageDispatcher) {
-    }
+    fn handle_message(&mut self, _message: Telegram, _dispatcher: &mut MessageDispatcher) {}
 
     fn set_pos(&mut self, pos: Vector2<f32>) {
         self.position = pos;

@@ -1,18 +1,15 @@
-use super::super::graphics::image::{GenericImageView, Rgba};
-use super::super::graphics::{SPRITE_SIZE_U32, SPRITE_SIZE_F32};
-use super::super::graphics::{AnimatedSprite, Screen};
-use super::super::input::KeyBoard;
-use super::super::level::Room;
-use super::entity::{Collider, CollisionKind, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram};
-use super::entity::{PLAYER_ID, ENTITY_MANAGER_ID};
+use crate::entity::{Collider, CollisionKind, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram, ENTITY_MANAGER_ID, PLAYER_ID};
+use crate::graphics::{
+    screen::Screen,
+    sprite::{AnimatedSprite, SPRITE_SIZE_F32, SPRITE_SIZE_U32},
+};
+use crate::input::keyboard::KeyBoard;
+use crate::level::room::Room;
+use cgmath::Vector2;
+use image::{GenericImageView, Rgba};
+use piston::input::Key;
 use std::cell::RefCell;
 use std::rc::Rc;
-use piston::input::Key;
-use cgmath::Vector2;
-
-fn right_shift_vec(vec: Vector2<i32>, value: u32) -> Vector2<i32> {
-    [vec.x>> value, vec.y>> value].into()
-}
 
 pub struct Player {
     position: Vector2<f32>,
@@ -54,9 +51,15 @@ impl Player {
         let xy7 = (xy + Vector2::new(size_minus_one, size_minus_one)) / SPRITE_SIZE_U32 as i32;
         match self.direction {
             Direction::Up => room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy7.x, xy0.y).solid,
-            Direction::Down => room.get_tile(xy0.x, xy7.y).solid || room.get_tile(xy7.x, xy7.y).solid,
-            Direction::Right => room.get_tile(xy7.x, xy0.y).solid || room.get_tile(xy7.x, xy7.y).solid,
-            Direction::Left => room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy0.x, xy7.y).solid,
+            Direction::Down => {
+                room.get_tile(xy0.x, xy7.y).solid || room.get_tile(xy7.x, xy7.y).solid
+            }
+            Direction::Right => {
+                room.get_tile(xy7.x, xy0.y).solid || room.get_tile(xy7.x, xy7.y).solid
+            }
+            Direction::Left => {
+                room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy0.x, xy7.y).solid
+            }
         }
     }
 
@@ -69,7 +72,9 @@ impl Player {
     }
 
     fn sprite_mut(&mut self) -> &mut AnimatedSprite {
-        self.sprites.get_mut(&self.shoot_direction.unwrap_or(self.direction)).unwrap()
+        self.sprites
+            .get_mut(&self.shoot_direction.unwrap_or(self.direction))
+            .unwrap()
     }
 }
 
@@ -159,12 +164,16 @@ impl Entity for Player {
             _ => false,
         };
         let pixels = self.sprite().view();
-        let Vector2 {x: ax, y: ay} = self.relative_pos(offset);
+        let Vector2 { x: ax, y: ay } = self.relative_pos(offset);
         for y in 0..self.sprite().size() {
             for x in 0..self.sprite().size() {
                 let xp = x as i32 + ax;
                 let yp = y as i32 + ay;
-                if xp < 0 || xp >= screen.dimensions.x as i32 || yp < 0 || yp >= screen.dimensions.y as i32 {
+                if xp < 0
+                    || xp >= screen.dimensions.x as i32
+                    || yp < 0
+                    || yp >= screen.dimensions.y as i32
+                {
                     continue;
                 }
                 #[cfg(feature = "debug_rect")]
@@ -184,7 +193,14 @@ impl Entity for Player {
                         continue;
                     }
                 }
-                let pixel = match pixels.get_pixel(if flipped { self.sprite().size() - 1 - x } else { x }, y) {
+                let pixel = match pixels.get_pixel(
+                    if flipped {
+                        self.sprite().size() - 1 - x
+                    } else {
+                        x
+                    },
+                    y,
+                ) {
                     Rgba {
                         data: [255, 0, 255, 255],
                     } => continue,
@@ -212,7 +228,7 @@ impl Entity for Player {
     }
 
     fn collider(&self) -> Option<Collider> {
-        let sprite_size = self.sprite().size() as f32;
+        let _sprite_size = self.sprite().size() as f32;
         Some(Collider::new(
             self.position + Vector2::new(4.0, 8.0),
             (8.0, 8.0).into(),
@@ -239,8 +255,7 @@ impl Entity for Player {
         self.id
     }
 
-    fn handle_message(&mut self, _message: Telegram, _dispatcher: &mut MessageDispatcher) {
-    }
+    fn handle_message(&mut self, _message: Telegram, _dispatcher: &mut MessageDispatcher) {}
 
     fn set_pos(&mut self, pos: Vector2<f32>) {
         self.position = pos;

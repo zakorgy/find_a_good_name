@@ -4,7 +4,6 @@ use std::path::PathBuf;
 pub static SPRITE_SIZE_U32: u32 = 16;
 pub static SPRITE_SIZE_SHIFT_VALUE: u32 = 4;
 pub static HALF_SPRITE_SIZE_U32: u32 = 8;
-pub static HALF_SPRITE_SIZE_SHIFT_VALUE: u32 = 3;
 pub static SPRITE_SIZE_F32: f32 = 16.0;
 
 lazy_static! {
@@ -18,7 +17,8 @@ lazy_static! {
     static ref GRASS3: Sprite = Sprite::new(SPRITE_SIZE_U32, 10, 1, &SHEET);
     static ref GRASS4: Sprite = Sprite::new(SPRITE_SIZE_U32, 10, 2, &SHEET);
     static ref GRASS5: Sprite = Sprite::new(SPRITE_SIZE_U32, 10, 3, &SHEET);
-    pub static ref GRASSES: Vec<&'static Sprite> = vec![&GRASS0, &GRASS1, &GRASS2, &GRASS3, &GRASS4, &GRASS5];
+    pub static ref GRASSES: Vec<&'static Sprite> =
+        vec![&GRASS0, &GRASS1, &GRASS2, &GRASS3, &GRASS4, &GRASS5];
     pub static ref VOID: Sprite = Sprite::new(SPRITE_SIZE_U32, 18, 0, &SHEET);
     static ref CORNER0: Sprite = Sprite::new(SPRITE_SIZE_U32, 3, 0, &SHEET);
     static ref CORNER1: Sprite = Sprite::new(SPRITE_SIZE_U32, 3, 1, &SHEET);
