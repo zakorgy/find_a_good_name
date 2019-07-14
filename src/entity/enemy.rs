@@ -58,8 +58,8 @@ impl Entity for Enemy {
     fn collider(&self) -> Option<Collider> {
         let sprite_size = self.sprite.size() as f32;
         Some(Collider::new(
-            self.position,
-            (sprite_size, sprite_size).into(),
+            self.position + Vector2::new(1., 6.0),
+            (14.0, 10.0).into(),
             CollisionKind::Hostile,
         ))
     }
