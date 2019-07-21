@@ -20,7 +20,7 @@ impl Enemy {
         Enemy {
             position,
             _speed,
-            _direction: Direction::Right,
+            _direction: Direction::RIGHT,
             removed: false,
             sprite,
             _collides: false,
@@ -56,7 +56,6 @@ impl Entity for Enemy {
     }
 
     fn collider(&self) -> Option<Collider> {
-        let sprite_size = self.sprite.size() as f32;
         Some(Collider::new(
             self.position + Vector2::new(1., 6.0),
             (14.0, 10.0).into(),

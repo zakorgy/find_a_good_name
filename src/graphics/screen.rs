@@ -45,10 +45,11 @@ impl Screen {
                     continue;
                 }
                 let (pixel_x, pixel_y) = match orientation {
-                    Direction::Up => (x, y),
-                    Direction::Down => (x, tile.sprite.size - 1 - y),
-                    Direction::Left => (y, x),
-                    Direction::Right => (y, tile.sprite.size - 1 - x),
+                    Direction::UP => (x, y),
+                    Direction::DOWN => (x, tile.sprite.size - 1 - y),
+                    Direction::LEFT => (y, x),
+                    Direction::RIGHT => (y, tile.sprite.size - 1 - x),
+                    _ => unimplemented!(),
                 };
                 self.canvas.put_pixel(
                     xa as u32,

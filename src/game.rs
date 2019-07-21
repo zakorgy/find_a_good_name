@@ -96,22 +96,22 @@ impl Game {
             match self.state {
                 GameState::Start => {
                     let player = Box::new(Player::new(
-                        0.7,
+                        1.,
                         vec![
                             (
-                                Direction::Up,
+                                Direction::UP,
                                 AnimatedSprite::new(PLAYER_UP.to_vec(), vec![5, 10, 15]),
                             ),
                             (
-                                Direction::Down,
+                                Direction::DOWN,
                                 AnimatedSprite::new(PLAYER_DOWN.to_vec(), vec![5, 10, 15]),
                             ),
                             (
-                                Direction::Left,
+                                Direction::LEFT,
                                 AnimatedSprite::new(PLAYER_LEFT.to_vec(), vec![5, 10, 15]),
                             ),
                             (
-                                Direction::Right,
+                                Direction::RIGHT,
                                 AnimatedSprite::new(PLAYER_LEFT.to_vec(), vec![5, 10, 15]),
                             ),
                         ],

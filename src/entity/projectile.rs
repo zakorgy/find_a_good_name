@@ -42,9 +42,9 @@ impl Projectile {
 }
 
 impl Entity for Projectile {
-    fn move_entity(&mut self, distance: Vector2<f32>, room: &Room) {
-        if !self.collision(&room, distance) {
-            self.position += distance;
+    fn move_entity(&mut self, forces: &[Vector2<f32>], room: &Room) {
+        if !self.collision(&room, forces[0]) {
+            self.position += forces[0];
         }
     }
 
@@ -57,7 +57,7 @@ impl Entity for Projectile {
             self.remove();
         }
         let dist = self.heading * self.speed;
-        self.move_entity(dist, room);
+        self.move_entity(&[dist], room);
     }
 
     fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {

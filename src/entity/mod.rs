@@ -1,7 +1,9 @@
 pub mod enemy;
 pub mod player;
 mod projectile;
+mod moving_component;
 
+use bitflags;
 use crate::graphics::{
     screen::Screen,
     sprite::{SPRITE_SIZE_F32, SPRITE_SIZE_U32}
@@ -25,7 +27,8 @@ const EPSILON: Vector2<f32> = Vector2::new(0.005, 0.005);
 
 pub trait Entity {
     fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher);
-    fn move_entity(&mut self, _distance: Vector2<f32>, _room: &Room) {}
+    fn move_entity(&mut self, _forces: &[Vector2<f32>], _room: &Room) {}
+    fn reset_pos(&mut self) {}
     fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
         self.render_impl(screen, offset, false)
     }
@@ -139,12 +142,13 @@ pub trait Entity {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
-pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
+bitflags! {
+    pub struct Direction: u32 {
+        const     UP = 0b00000001;
+        const   DOWN = 0b00000010;
+        const   LEFT = 0b00000100;
+        const  RIGHT = 0b00001000;
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -196,6 +200,7 @@ impl Collider {
         self.kind == CollisionKind::Hostile
     }
 
+    #[cfg(feature = "debug_rect")]
     pub fn relative_pos(&self, offset: Vector2<f32>) -> Vector2<i32> {
         (self.origin - offset).cast().unwrap()
     }
@@ -362,18 +367,20 @@ impl EntityManager {
         let mut colliding_entites = Vec::new();
         {
             let mut player = self.entities.remove(&PLAYER_ID).unwrap();
-            for (k, ref e) in self.entities.iter() {
+            for (id, ref e) in self.entities.iter() {
                 if player.collides_with(&e.collider()) {
-                    colliding_entites.push((*k, e.collider().unwrap()));
+                    dispatcher.queue_message(PLAYER_ID, *id, Message::Collides);
+                    dispatcher.queue_message(*id, PLAYER_ID, Message::Collides);
+                    colliding_entites.push((*id, e.collider().unwrap()));
                 }
             }
             self.entities.insert(PLAYER_ID, player);
         }
-        if colliding_entites.is_empty() {
-            return
+        if !colliding_entites.is_empty() {
+            let player = self.entities.get_mut(&PLAYER_ID).unwrap();
+            player.reset_pos();
         }
-        let player = self.entities.get_mut(&PLAYER_ID).unwrap();
-        let player_collider = player.collider().unwrap();
+        /*let player_collider = player.collider().unwrap();
         let epsilon = 0.5;
         for (id, collider) in colliding_entites {
             let Vector2 {
@@ -406,7 +413,7 @@ impl EntityManager {
             }
             dispatcher.queue_message(PLAYER_ID, id, Message::Collides);
             dispatcher.queue_message(id, PLAYER_ID, Message::Collides);
-        }
+        }*/
     }
 
     pub fn get_entity_mut(&mut self, id: &EntityId) -> &mut Box<dyn Entity> {

@@ -5,6 +5,7 @@ authors = ["Zakor Gyula <gyula.zakor@h-lab.eu>"]
 edition = "2018"
 
 [dependencies]
+bitflags = "1.1.0"
 piston = "0.39.0"
 piston_window = "0.85.0"
 image = "0.20.1"
