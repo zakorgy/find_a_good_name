@@ -12,6 +12,7 @@ use projectile::Projectile;
 use crate::level::room::{Room, RoomId};
 use cgmath::Vector2;
 use image::{Rgba, GenericImageView, RgbaImage, SubImage};
+use moving_component::Force;
 
 use std::boxed::Box;
 use std::collections::{HashMap, VecDeque};
@@ -27,7 +28,7 @@ const EPSILON: Vector2<f32> = Vector2::new(0.005, 0.005);
 
 pub trait Entity {
     fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher);
-    fn move_entity(&mut self, _forces: &[Vector2<f32>], _room: &Room) {}
+    fn move_entity(&mut self, _forces: &[Force], _room: &Room) -> bool { false }
     fn reset_pos(&mut self) {}
     fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {
         self.render_impl(screen, offset, false)

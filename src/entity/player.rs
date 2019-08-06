@@ -1,6 +1,6 @@
 use crate::entity::{
     Collider, CollisionKind, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram, ENTITY_MANAGER_ID, PLAYER_ID,
-    moving_component::MovingComponent,
+    moving_component::{MovingComponent, Force},
 };
 use crate::graphics::{
     screen::Screen,
@@ -96,9 +96,9 @@ impl Player {
 }
 
 impl Entity for Player {
-    fn move_entity(&mut self, forces: &[Vector2<f32>], room: &Room) {
+    fn move_entity(&mut self, forces: &[Force], room: &Room) -> bool {
         let old_pos = self.moving.pos();
-        self.moving.update(forces, true);
+        let moved = self.moving.update(forces, true);
         let new_pos  = self.moving.pos();
         self.moving.set_pos((new_pos.x, old_pos.y).into());
         if self.collision(&room) {
@@ -109,38 +109,40 @@ impl Entity for Player {
         if self.collision(&room) {
             self.moving.set_pos(old_pos);
         }
+        moved
     }
 
     fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {
         self.collides = false;
         let mut normalize = false;
         self.direction = Direction::empty();
+        let mut force: Vector2<f32> = (0., 0.).into();
         if self.keyboard.borrow().up {
-            self.moving.force.y -= 1.;
+            force.y -= 1.;
             self.direction |= Direction::UP;
             self.sprite_direction = Direction::UP;
             normalize = true;
         }
         if self.keyboard.borrow().down {
-            self.moving.force.y += 1.;
+            force.y += 1.;
             self.direction |= Direction::DOWN;
             self.sprite_direction = Direction::DOWN;
             normalize = true;
         }
         if self.keyboard.borrow().left {
-            self.moving.force.x -= 1.;
+            force.x -= 1.;
             self.direction |= Direction::LEFT;
             self.sprite_direction = Direction::LEFT;
             normalize = true;
         }
         if self.keyboard.borrow().right {
-            self.moving.force.x += 1.;
+            force.x += 1.;
             self.direction |= Direction::RIGHT;
             self.sprite_direction = Direction::RIGHT;
             normalize = true;
         }
         if normalize {
-            self.moving.force = self.moving.force.normalize();
+            force = force.normalize();
         }
 
         self.shoot_direction = None;
@@ -169,17 +171,16 @@ impl Entity for Player {
                 Message::SpawnEntity(self.middle_point(), heading, 4.0),
             );
         }
-        let mut update_sprite = false;
-        self.move_entity(&[], room);
-        if self.moving.force.magnitude2() > 0.0001 {
-            update_sprite = true;
-        }        
+        let update_sprite = if force.magnitude2() > 0.0001 {
+            self.move_entity(&[Force::new(force, 1)], room)
+        } else {
+            self.move_entity(&[], room)
+        };
         if update_sprite {
             self.sprite_mut().update();
         } else {
             self.sprite_mut().reset();
         }
-        self.moving.force = (0., 0.).into();
     }
 
     fn sprite_view(&self) -> Option<SubImage<&RgbaImage>> {

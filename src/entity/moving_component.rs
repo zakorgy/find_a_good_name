@@ -1,11 +1,36 @@
 use cgmath::Vector2;
 use cgmath::InnerSpace;
+use crate::game::FRAMES_PER_SEC;
+use std::cell::Cell;
+
+#[derive(Clone, Debug)]
+pub struct Force {
+    pub force: Vector2<f32>,
+    depleet_time: Cell<i32>,
+}
+
+impl Force {
+    pub fn new(force: Vector2<f32>, depleet_time: i32) -> Self {
+        Force {
+            force,
+            depleet_time: Cell::new(depleet_time),
+        }
+    }
+
+    pub fn update(&self) -> bool {
+        if self.depleet_time.get() == 0 {
+            return true
+        }
+        self.depleet_time.set(self.depleet_time.get() - 1);
+        false
+    }
+}
 
 pub struct MovingComponent {
     position: Vector2<f32>,
     old_pos: Vector2<f32>,
     velocity: Vector2<f32>,
-    pub force: Vector2<f32>,
+    forces: Vec<Force>,
     mass: f32,
     max_speed: f32,
     max_force: f32,
@@ -32,15 +57,20 @@ impl MovingComponent {
             old_pos: (0., 0.).into(),
             position: (0., 0.).into(),
             velocity: (0., 0.).into(),
-            force: (0., 0.).into(),
+            forces: vec![],
             mass,
             max_speed,
             max_force,
         }
     }
 
-    pub fn update(&mut self, forces: &[Vector2<f32>], reset: bool) {
-        let steering_force = self.calculate(forces);
+    pub fn update(&mut self, forces: &[Force], reset: bool) -> bool {
+        self.forces.extend_from_slice(forces);
+        self.forces.retain(|force| {
+            let delete = force.update();
+            !delete
+        });
+        let steering_force = self.calculate();
         let acceleration = steering_force / self.mass;
         if reset {
             self.velocity = (0., 0.).into();
@@ -51,15 +81,13 @@ impl MovingComponent {
         }
         self.old_pos = self.position;
         self.position += self.velocity;
+        return acceleration.magnitude2() > 0.000001
     }
 
-    fn calculate(&self, forces: &[Vector2<f32>]) -> Vector2<f32> {
+    fn calculate(&self) -> Vector2<f32> {
         let mut steering_force = (0., 0.).into();
-        if self.force.magnitude2() > 0.00001 {
-            self.accumulate_force(&mut steering_force, self.force);
-        }
-        for force in forces {
-            self.accumulate_force(&mut steering_force, *force);
+        for force in &self.forces {
+            self.accumulate_force(&mut steering_force, force.force);
         }
         steering_force
     }

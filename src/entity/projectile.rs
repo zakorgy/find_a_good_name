@@ -1,9 +1,13 @@
-use crate::entity::{Collider, CollisionKind, Entity, EntityId, MessageDispatcher, Telegram};
+use crate::entity::{
+    Collider, CollisionKind, Entity, EntityId, MessageDispatcher, Telegram,
+    moving_component::Force,
+};
 use crate::graphics::{
     screen::Screen,
     sprite::SPRITE_SIZE_SHIFT_VALUE,
 };
 use crate::level::room::Room;
+
 use cgmath::Vector2;
 use image::Rgba;
 
@@ -42,10 +46,12 @@ impl Projectile {
 }
 
 impl Entity for Projectile {
-    fn move_entity(&mut self, forces: &[Vector2<f32>], room: &Room) {
-        if !self.collision(&room, forces[0]) {
-            self.position += forces[0];
+    fn move_entity(&mut self, forces: &[Force], room: &Room) -> bool {
+        if !self.collision(&room, forces[0].force) {
+            self.position += forces[0].force;
+            return true
         }
+        false
     }
 
     fn update(&mut self, room: &Room, _dispatcher: &mut MessageDispatcher) {
@@ -57,7 +63,7 @@ impl Entity for Projectile {
             self.remove();
         }
         let dist = self.heading * self.speed;
-        self.move_entity(&[dist], room);
+        self.move_entity(&[Force::new(dist, 1)], room);
     }
 
     fn render(&self, screen: &mut Screen, offset: Vector2<f32>) {

@@ -21,6 +21,7 @@ use std::rc::Rc;
 static EXIT_KEY: &'static Key = &Key::Escape;
 static PAUSE_KEY: &'static Key = &Key::Space;
 const OFFSET_FROM_DOOR: f32 = 12.0;
+pub const FRAMES_PER_SEC: i32 = 60;
 
 #[derive(Debug)]
 enum GameState {
@@ -88,7 +89,7 @@ impl Game {
 
         let mut last_time = Instant::now();
         let mut timer = Instant::now();
-        let ns = 1_000_000_000.0_f64 / 60.0_f64;
+        let ns = 1_000_000_000.0_f64 / FRAMES_PER_SEC as f64;
         let mut delta = 0.0_f64;
         let mut frames = 0_u32;
         let mut updates = 0_u32;
