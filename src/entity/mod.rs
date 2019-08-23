@@ -1,7 +1,8 @@
 pub mod enemy;
+mod moving_component;
 pub mod player;
 mod projectile;
-mod moving_component;
+mod state;
 
 use bitflags;
 use crate::graphics::{

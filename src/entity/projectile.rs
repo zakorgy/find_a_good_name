@@ -56,9 +56,9 @@ impl Entity for Projectile {
 
     fn update(&mut self, room: &Room, _dispatcher: &mut MessageDispatcher) {
         if self.position.x < 0.
-            || self.position.x > (room.dimensions.x << SPRITE_SIZE_SHIFT_VALUE) as f32
+            || self.position.x > (room.dimensions.x<< SPRITE_SIZE_SHIFT_VALUE) as f32
             || self.position.y < 0.
-            || self.position.y > (room.dimensions.y << SPRITE_SIZE_SHIFT_VALUE) as f32
+            || self.position.y > (room.dimensions.y<< SPRITE_SIZE_SHIFT_VALUE) as f32
         {
             self.remove();
         }

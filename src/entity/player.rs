@@ -1,5 +1,6 @@
 use crate::entity::{
     Collider, CollisionKind, Direction, Entity, EntityId, Message, MessageDispatcher, Telegram, ENTITY_MANAGER_ID, PLAYER_ID,
+    state::{State, StateMachine},
     moving_component::{MovingComponent, Force},
 };
 use crate::graphics::{
@@ -14,6 +15,84 @@ use piston::input::Key;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum PlayerState {
+    Walking,
+    Flying,
+    Damaged,
+    Dying,
+}
+
+impl State<Player> for PlayerState {
+    fn enter(&self, owner: &mut Player, dispatcher: &mut MessageDispatcher) {}
+    fn execute(&self, owner: &mut Player, dispatcher: &mut MessageDispatcher) {
+        match *self {
+            PlayerState::Walking => {
+                owner.collides = false;
+                let mut normalize = false;
+                owner.direction = Direction::empty();
+                let mut force: Vector2<f32> = (0., 0.).into();
+                if owner.keyboard.borrow().up {
+                    force.y -= 1.;
+                    owner.direction |= Direction::UP;
+                    owner.sprite_direction = Direction::UP;
+                    normalize = true;
+                }
+                if owner.keyboard.borrow().down {
+                    force.y += 1.;
+                    owner.direction |= Direction::DOWN;
+                    owner.sprite_direction = Direction::DOWN;
+                    normalize = true;
+                }
+                if owner.keyboard.borrow().left {
+                    force.x -= 1.;
+                    owner.direction |= Direction::LEFT;
+                    owner.sprite_direction = Direction::LEFT;
+                    normalize = true;
+                }
+                if owner.keyboard.borrow().right {
+                    force.x += 1.;
+                    owner.direction |= Direction::RIGHT;
+                    owner.sprite_direction = Direction::RIGHT;
+                    normalize = true;
+                }
+                if normalize {
+                    owner.moving.set_thrust(Force::new(force.normalize(), 2));
+                }
+
+                owner.shoot_direction = None;
+                let mut proj_heading = None;
+                if owner.keyboard.borrow().keys.contains(&Key::W) {
+                    owner.shoot_direction = Some(Direction::UP);
+                    proj_heading = Some((0., -1.).into());
+                }
+                if owner.keyboard.borrow().keys.contains(&Key::S) {
+                    owner.shoot_direction = Some(Direction::DOWN);
+                    proj_heading = Some((0., 1.).into());
+                }
+                if owner.keyboard.borrow().keys.contains(&Key::A) {
+                    owner.shoot_direction = Some(Direction::LEFT);
+                    proj_heading = Some((-1., 0.).into());
+                }
+                if owner.keyboard.borrow().keys.contains(&Key::D) {
+                    owner.shoot_direction = Some(Direction::RIGHT);
+                    proj_heading = Some((1., 0.).into());
+                }
+
+                if let Some(heading) = proj_heading {
+                    dispatcher.queue_message(
+                        PLAYER_ID,
+                        ENTITY_MANAGER_ID,
+                        Message::SpawnEntity(owner.middle_point(), heading, 4.0),
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    fn exit(&self, owner: &mut Player, dispatcher: &mut MessageDispatcher) {}
+}
+
 pub struct Player {
     moving: MovingComponent,
     direction: Direction,
@@ -24,6 +103,7 @@ pub struct Player {
     collides: bool,
     id: EntityId,
     keyboard: Rc<RefCell<KeyBoard>>,
+    states: Option<StateMachine<Self, PlayerState>>,
 }
 
 impl Player {
@@ -47,6 +127,7 @@ impl Player {
             collides: false,
             id,
             keyboard,
+            states: Some(StateMachine::new(None, PlayerState::Walking)),
         }
     }
 
@@ -57,22 +138,22 @@ impl Player {
         let size_minus_one = collider.dimensions.x as i32 - 1;
         let xy7 = (xy + Vector2::new(size_minus_one, size_minus_one)) / SPRITE_SIZE_U32 as i32;
 
-        if self.direction.contains(Direction::UP)  &&
+        if /*self.direction.contains(Direction::UP)  &&*/
             (room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy7.x, xy0.y).solid) {
                 return true
             }
         
-        if self.direction.contains(Direction::DOWN)  &&
+        if /*self.direction.contains(Direction::DOWN)  &&*/
             (room.get_tile(xy0.x, xy7.y).solid || room.get_tile(xy7.x, xy7.y).solid) {
                 return true
             }
         
-        if self.direction.contains(Direction::RIGHT)  &&
+        if /*self.direction.contains(Direction::RIGHT)  &&*/
             (room.get_tile(xy7.x, xy0.y).solid || room.get_tile(xy7.x, xy7.y).solid) {
                 return true
             }
         
-        if self.direction.contains(Direction::LEFT)  &&
+        if /*self.direction.contains(Direction::LEFT)  &&*/
             (room.get_tile(xy0.x, xy0.y).solid || room.get_tile(xy0.x, xy7.y).solid) {
                 return true
             }
@@ -102,80 +183,25 @@ impl Entity for Player {
         let new_pos  = self.moving.pos();
         self.moving.set_pos((new_pos.x, old_pos.y).into());
         if self.collision(&room) {
+            println!("Collision1");
             self.moving.set_pos(old_pos);
         }
         let old_pos = self.moving.pos();
         self.moving.set_pos((old_pos.x, new_pos.y).into());
         if self.collision(&room) {
+            println!("Collision2");
             self.moving.set_pos(old_pos);
         }
+        println!("-----");
         moved
     }
 
     fn update(&mut self, room: &Room, dispatcher: &mut MessageDispatcher) {
-        self.collides = false;
-        let mut normalize = false;
-        self.direction = Direction::empty();
-        let mut force: Vector2<f32> = (0., 0.).into();
-        if self.keyboard.borrow().up {
-            force.y -= 1.;
-            self.direction |= Direction::UP;
-            self.sprite_direction = Direction::UP;
-            normalize = true;
-        }
-        if self.keyboard.borrow().down {
-            force.y += 1.;
-            self.direction |= Direction::DOWN;
-            self.sprite_direction = Direction::DOWN;
-            normalize = true;
-        }
-        if self.keyboard.borrow().left {
-            force.x -= 1.;
-            self.direction |= Direction::LEFT;
-            self.sprite_direction = Direction::LEFT;
-            normalize = true;
-        }
-        if self.keyboard.borrow().right {
-            force.x += 1.;
-            self.direction |= Direction::RIGHT;
-            self.sprite_direction = Direction::RIGHT;
-            normalize = true;
-        }
-        if normalize {
-            force = force.normalize();
-        }
-
-        self.shoot_direction = None;
-        let mut proj_heading = None;
-        if self.keyboard.borrow().keys.contains(&Key::W) {
-            self.shoot_direction = Some(Direction::UP);
-            proj_heading = Some((0., -1.).into());
-        }
-        if self.keyboard.borrow().keys.contains(&Key::S) {
-            self.shoot_direction = Some(Direction::DOWN);
-            proj_heading = Some((0., 1.).into());
-        }
-        if self.keyboard.borrow().keys.contains(&Key::A) {
-            self.shoot_direction = Some(Direction::LEFT);
-            proj_heading = Some((-1., 0.).into());
-        }
-        if self.keyboard.borrow().keys.contains(&Key::D) {
-            self.shoot_direction = Some(Direction::RIGHT);
-            proj_heading = Some((1., 0.).into());
-        }
-
-        if let Some(heading) = proj_heading {
-            dispatcher.queue_message(
-                PLAYER_ID,
-                ENTITY_MANAGER_ID,
-                Message::SpawnEntity(self.middle_point(), heading, 4.0),
-            );
-        }
-        let update_sprite = if force.magnitude2() > 0.0001 {
-            self.move_entity(&[Force::new(force, 1)], room)
-        } else {
-            self.move_entity(&[], room)
-        };
+        let states = self.states.take().unwrap();
+        states.update(self, dispatcher);
+        self.states = Some(states);
+        let update_sprite = self.moving.thrust().has_magnitude();
+        self.move_entity(&[], room);
         if update_sprite {
             self.sprite_mut().update();
         } else {

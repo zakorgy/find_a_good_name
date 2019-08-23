@@ -7,6 +7,7 @@ use std::cell::Cell;
 pub struct Force {
     pub force: Vector2<f32>,
     depleet_time: Cell<i32>,
+    magnitude2: f32,
 }
 
 impl Force {
@@ -14,15 +15,24 @@ impl Force {
         Force {
             force,
             depleet_time: Cell::new(depleet_time),
+            magnitude2: force.magnitude2(),
         }
     }
 
     pub fn update(&self) -> bool {
-        if self.depleet_time.get() == 0 {
+        if self.depleeted() {
             return true
         }
         self.depleet_time.set(self.depleet_time.get() - 1);
         false
+    }
+
+    pub fn has_magnitude(&self) -> bool {
+        !self.depleeted() && self.magnitude2 > 0.0001
+    }
+
+    pub fn depleeted(&self) -> bool {
+        self.depleet_time.get() == 0
     }
 }
 
@@ -30,6 +40,7 @@ pub struct MovingComponent {
     position: Vector2<f32>,
     old_pos: Vector2<f32>,
     velocity: Vector2<f32>,
+    thrust: Force,
     forces: Vec<Force>,
     mass: f32,
     max_speed: f32,
@@ -40,6 +51,14 @@ pub struct MovingComponent {
 }
 
 impl MovingComponent {
+    pub fn thrust(&self) -> &Force {
+        &self.thrust
+    }
+
+    pub fn set_thrust(&mut self, thrust: Force) {
+        self.thrust = thrust;
+    }
+
     pub fn pos(&self) -> Vector2<f32> {
         self.position
     }
@@ -57,6 +76,7 @@ impl MovingComponent {
             old_pos: (0., 0.).into(),
             position: (0., 0.).into(),
             velocity: (0., 0.).into(),
+            thrust: Force::new((0., 0.).into(), 0),
             forces: vec![],
             mass,
             max_speed,
@@ -66,6 +86,7 @@ impl MovingComponent {
 
     pub fn update(&mut self, forces: &[Force], reset: bool) -> bool {
         self.forces.extend_from_slice(forces);
+        self.thrust.update();
         self.forces.retain(|force| {
             let delete = force.update();
             !delete
@@ -86,6 +107,9 @@ impl MovingComponent {
 
     fn calculate(&self) -> Vector2<f32> {
         let mut steering_force = (0., 0.).into();
+        if !self.thrust.depleeted() && self.thrust.magnitude2 > 0.000001 {
+            self.accumulate_force(&mut steering_force, self.thrust.force);
+        }
         for force in &self.forces {
             self.accumulate_force(&mut steering_force, force.force);
         }
